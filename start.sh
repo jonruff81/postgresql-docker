@@ -34,7 +34,7 @@ if docker ps -a | grep -q takeoff_postgres; then
     docker start takeoff_postgres
 else
     echo -e "${GREEN}🚀 Creating and starting new container...${NC}"
-    docker-compose up -d
+    docker compose up -d
 fi
 
 # Wait for PostgreSQL to be ready
@@ -44,7 +44,7 @@ count=0
 until docker exec takeoff_postgres pg_isready -U Jon -d takeoff_pricing_db > /dev/null 2>&1; do
     if [ $count -ge $timeout ]; then
         echo -e "${RED}❌ Timeout waiting for PostgreSQL to start${NC}"
-        docker-compose logs
+        docker compose logs
         exit 1
     fi
     echo -n "."
@@ -63,7 +63,7 @@ echo -e "  Port: 5432"
 echo -e "  Database: takeoff_pricing_db"
 echo -e "  Username: Jon"
 echo -e "\n${YELLOW}🔧 Useful Commands:${NC}"
-echo -e "  View logs: ${BLUE}docker-compose logs -f${NC}"
+echo -e "  View logs: ${BLUE}docker compose logs -f${NC}"
 echo -e "  Connect to DB: ${BLUE}docker exec -it takeoff_postgres psql -U Jon -d takeoff_pricing_db${NC}"
-echo -e "  Stop container: ${BLUE}docker-compose down${NC}"
+echo -e "  Stop container: ${BLUE}docker compose down${NC}"
 echo -e "  Database backup: ${BLUE}./backup.sh${NC}"
