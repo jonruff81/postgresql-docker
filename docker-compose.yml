@@ -1,0 +1,25 @@
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: takeoff_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: Jon
+      POSTGRES_PASSWORD: Transplant4real
+      POSTGRES_DB: takeoff_pricing_db
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U Jon"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
