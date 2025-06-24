@@ -1,207 +1,184 @@
-# PostgreSQL 15 Docker Setup for Ubuntu 24.04 VPS
+# PostgreSQL Takeoff Pricing Database
 
-Production-grade PostgreSQL 15 container deployment for takeoff pricing database.
+A comprehensive PostgreSQL-based system for managing construction takeoff pricing data with vendor management, historical price tracking, and file attachments.
 
-## 🚀 Quick Start
+## 🚀 Current Status - PRODUCTION READY
 
-```bash
-# Clone the repository
-git clone https://github.com/jonruff81/postgresql-docker.git
-cd postgresql-docker
+✅ **Database Schema Complete** - Full PostgreSQL schema with 20 tables and views  
+✅ **Data Migration Complete** - SF fields properly moved to plan_options table  
+✅ **Vendor Pricing System** - Historical tracking with 229 pricing records from 62 vendors  
+✅ **Data Loader Working** - Enhanced loader handles all 61 Excel columns  
+✅ **File Organization Complete** - Clean, organized project structure  
 
-# Make scripts executable
-chmod +x start.sh backup.sh
-
-# Start PostgreSQL container
-./start.sh
-```
-
-## 📋 Features
-
-- **PostgreSQL 15 Alpine** - Lightweight and secure
-- **Production Optimized** - Memory limits, connection pooling, performance tuning
-- **Security Focused** - Localhost binding only, read-only mounts
-- **Auto-Schema Setup** - Database initialization on first run
-- **Health Monitoring** - Built-in health checks
-- **Logging** - Structured logging with rotation
-- **Backup Tools** - Automated backup scripts
-
-## 🐘 Database Configuration
-
-| Setting | Value |
-|---------|-------|
-| **Image** | `postgres:15-alpine` |
-| **Database** | `takeoff_pricing_db` |
-| **Username** | `Jon` |
-| **Password** | `Transplant4real` |
-| **Port** | `5432` (localhost only) |
-| **Container** | `takeoff_postgres` |
-
-## 🗂️ Project Structure
+## 📁 Project Structure
 
 ```
 postgresql-docker/
-├── docker-compose.yml      # Main container configuration
-├── start.sh               # Bootstrap script
-├── backup.sh              # Database backup utility
-├── init/
-│   └── schema.sql         # Database schema initialization
-├── logs/                  # PostgreSQL logs (created on startup)
-├── backups/               # Database backups (created when backing up)
-└── README.md              # This file
+├── docker-compose.yml          # Docker PostgreSQL configuration
+├── start.sh                    # Quick start script
+├── README.md                   # This file
+├── DATABASE_README.md          # Detailed database documentation
+├── 
+├── scripts/                    # Core operational scripts
+│   ├── new_data_loader.py      # Main data loader (USE THIS)
+│   ├── setup_database.sh       # Database setup script
+│   ├── rebuild_database.sh     # Database rebuild script
+│   ├── backup.sh              # Database backup utility
+│   └── consolidated-commands.sh # Batch operations
+├── 
+├── migrations/                 # SQL migration scripts (chronological)
+│   ├── 001_update_schema.sql   # Initial schema updates
+│   ├── 002_migrate_sf_fields.sql # SF field migration
+│   ├── 003_vendor_pricing_enhancement.sql # Vendor pricing system
+│   └── 004_populate_vendor_pricing.sql # Initial pricing data
+├── 
+├── utils/                      # Utility tools
+│   ├── examine_excel.py        # Excel file inspection
+│   ├── examine_excel_simple.py # Simple Excel analysis
+│   ├── file-optimizer-agent.py # File optimization
+│   └── simple-file-optimizer.py # Basic file optimization
+├── 
+├── init/                       # Database initialization
+│   └── complete_schema.sql     # Complete database schema
+├── 
+├── PlanElevOptions/           # Excel data files (21 files)
+│   ├── Barringer_A_Crawl_*.xlsx
+│   ├── Calderwood_A_Basement_*.xlsx
+│   ├── Croydonette_*_*.xlsx
+│   ├── Oxford_A_Basement_*.xlsx
+│   ├── Sandbrook_B_Crawl_*.xlsx
+│   └── Winchester_A_Basement_*.xlsx
+├── 
+├── archived/                   # Archived/historical files
+│   ├── old_loaders/           # Previous data loader versions
+│   ├── verification_queries.sql
+│   ├── Excel_Column_to_Database_Mapping.csv
+│   └── other historical files
+└── 
+└── logs/                      # Application logs
+    └── postgresql-*.log
 ```
 
-## 🛠️ Management Commands
+## 🏗️ Database Architecture
 
-### Start Database
+### Core Tables (20 total)
+- **plans** (6) → **plan_elevations** (7) → **plan_options** (22) → **jobs** (21) → **takeoffs** (2,321)
+- **vendors** (62) → **vendor_pricing** (229) → **vendor_quotes** → **quote_line_items**
+- **cost_groups** → **cost_codes** → **items** → **products**
+- **divisions** → **communities**
+- **pricing_attachments** (file management)
+
+### Key Features
+- ✅ **Vendor Pricing Catalog**: 229 active pricing records with history tracking
+- ✅ **Quote Management**: Formal quote workflow with file attachments
+- ✅ **Cost Analysis**: Plan/elevation/option level cost breakdowns
+- ✅ **SF Data**: Heated/unheated/total square footage by option
+- ✅ **Audit Trail**: Complete change tracking and user attribution
+
+## 🚀 Quick Start
+
+### 1. Start Database
 ```bash
 ./start.sh
 ```
 
-### Connect to Database
+### 2. Load Data
 ```bash
-# Via Docker
+# Load all Excel files
+python3 scripts/new_data_loader.py
+
+# Load specific files
+python3 scripts/new_data_loader.py PlanElevOptions Winchester
+```
+
+### 3. Access Database
+```bash
 docker exec -it takeoff_postgres psql -U Jon -d takeoff_pricing_db
-
-# Via psql (if installed locally)
-psql -h 127.0.0.1 -p 5432 -U Jon -d takeoff_pricing_db
 ```
 
-### View Logs
+## 📊 Current Data Status
+
+### Loaded Data Summary:
+- **6 Plans**: Barringer, Calderwood, Croydonette, Oxford, Sandbrook, Winchester
+- **7 Elevations**: Various A/B/C elevations with Basement/Crawl foundations
+- **22 Options**: BaseHome, Design Options, Structural, Finished Basement, etc.
+- **21 Jobs**: Template jobs for each plan/elevation/option combination
+- **2,321 Takeoff Records**: Detailed cost breakdowns
+- **62 Vendors**: From A-Sani-Can Service to Wright Bros Concrete
+- **229 Pricing Records**: Current vendor pricing with history
+
+### Pricing Analysis:
+- **Standard Pricing**: 179 records, avg $1,481.63
+- **Quote Pricing**: 50 records, avg $14,924.95
+- **Price Range**: $0.15 - $108,252.00
+
+## 🔧 Key Operations
+
+### Data Loading
 ```bash
-# Container logs
-docker-compose logs -f
-
-# PostgreSQL logs
-tail -f logs/postgresql-$(date +%Y-%m-%d).log
+# Main data loader with vendor pricing integration
+python3 scripts/new_data_loader.py [directory] [file_patterns...]
 ```
 
-### Backup Database
+### Database Management
 ```bash
-./backup.sh
+# Rebuild from scratch
+scripts/rebuild_database.sh
+
+# Setup fresh database
+scripts/setup_database.sh
+
+# Backup database
+scripts/backup.sh
 ```
 
-### Stop Database
+### Excel Analysis
 ```bash
-docker-compose down
+# Examine Excel file structure
+python3 utils/examine_excel_simple.py "path/to/file.xlsx"
 ```
 
-### Complete Cleanup (⚠️ Destroys data)
-```bash
-docker-compose down -v
-docker system prune -f
+## 📈 Business Intelligence Views
+
+### Cost Analysis
+```sql
+-- Plan cost analysis
+SELECT * FROM takeoff.v_job_cost_analysis WHERE plan_name = 'Winchester';
+
+-- Vendor pricing catalog
+SELECT * FROM takeoff.v_current_vendor_pricing ORDER BY vendor_name;
+
+-- Price history analysis
+SELECT * FROM takeoff.v_price_history WHERE price_change_percent IS NOT NULL;
 ```
 
-## 🗄️ Database Schema
+## 🔄 Git Branches
 
-The database includes these main components:
+- **main**: Current production-ready state
+- **backup-before-cleanup**: Backup of pre-organization state
 
-### Schemas
-- `pricing` - Main business logic tables
-- `audit` - Change tracking and logging
+## 📝 Next Steps
 
-### Tables
-- `pricing.products` - Product catalog
-- `pricing.price_rules` - Pricing logic and rules
-- `pricing.takeoff_calculations` - Calculation results
-- `audit.activity_log` - Change audit trail
+1. **Web UI Development**: Simple dashboard for table management
+2. **Enhanced File Attachments**: Quote PDF storage and management
+3. **Advanced Analytics**: Cost trend analysis and reporting
+4. **API Development**: REST API for external integrations
 
-### Users
-- `Jon` - Database owner (admin access)
-- `app_user` - Application user (limited access)
+## 📚 Documentation
 
-## 🔒 Security Features
+- `DATABASE_README.md`: Detailed database schema documentation
+- `migrations/`: Chronological database evolution
+- `archived/`: Historical files and verification queries
 
-- **Network Isolation** - Custom bridge network
-- **Port Binding** - Localhost only (127.0.0.1:5432)
-- **Resource Limits** - Memory and CPU constraints
-- **Read-only Mounts** - Init scripts mounted read-only
-- **User Separation** - Dedicated application user
+## 🐳 Docker Configuration
 
-## 📊 Monitoring & Health Checks
-
-- **Health Check** - Every 30 seconds
-- **Performance Monitoring** - pg_stat_statements enabled
-- **Log Rotation** - Daily rotation, 100MB size limit
-- **Resource Monitoring** - Docker stats available
-
-## 🚨 Troubleshooting
-
-### Container Won't Start
-```bash
-# Check Docker status
-docker info
-
-# View container logs
-docker-compose logs
-
-# Check system resources
-docker system df
-```
-
-### Connection Issues
-```bash
-# Verify container is running
-docker ps | grep takeoff_postgres
-
-# Test connection
-docker exec takeoff_postgres pg_isready -U Jon -d takeoff_pricing_db
-
-# Check port binding
-netstat -tulpn | grep :5432
-```
-
-### Performance Issues
-```bash
-# Check resource usage
-docker stats takeoff_postgres
-
-# View slow queries
-docker exec -it takeoff_postgres psql -U Jon -d takeoff_pricing_db -c "SELECT query, mean_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 10;"
-```
-
-## 🔧 Customization
-
-### Environment Variables
-Copy `.env.example` to `.env` and modify as needed:
-```bash
-cp .env.example .env
-nano .env
-```
-
-### Performance Tuning
-Modify `docker-compose.yml` command section for your VPS specs:
-- `shared_buffers` - 25% of RAM
-- `effective_cache_size` - 75% of RAM
-- `max_connections` - Based on your application needs
-
-### Schema Changes
-Edit `init/schema.sql` and restart container:
-```bash
-docker-compose down -v  # ⚠️ This destroys data
-./start.sh
-```
-
-## 📝 Production Deployment Notes
-
-### For Ubuntu 24.04 VPS:
-1. Ensure Docker and Docker Compose are installed
-2. Configure firewall (UFW) to block external PostgreSQL access
-3. Set up automated backups via cron
-4. Monitor disk space for logs and backups
-5. Consider setting up SSL certificates for remote connections
-
-### Recommended VPS Specs:
-- **Minimum:** 2 CPU cores, 4GB RAM, 20GB SSD
-- **Recommended:** 4 CPU cores, 8GB RAM, 50GB SSD
-
-## 📞 Support
-
-For issues or questions:
-1. Check the troubleshooting section above
-2. Review container logs: `docker-compose logs`
-3. Create an issue in this repository
+The system runs in Docker with:
+- PostgreSQL 13 with persistent storage
+- Custom takeoff_pricing_db database
+- Volume-mounted data directory
+- Automated backups
 
 ---
 
-**Made for Ubuntu 24.04 Hostinger VPS** 🐧
+**Database Ready for Production Use** 🎯  
+*All Excel data loaded, vendor pricing active, cost analysis operational*
