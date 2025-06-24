@@ -1,0 +1,281 @@
+Table TblPlans {
+  PlanID int [pk]
+  PlanName varchar(255)
+  PlanNumber varchar(100)
+  IsActive boolean  
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblPlanElevations {
+  PlanElevationID int [pk]
+  PlanID int [ref: > TblPlans.PlanID]
+  ElevationName varchar(100)
+  ElevationCode varchar(50)
+  Foundation varchar(100)
+  IsCurrentVersion boolean
+  VersionNumber varchar(50)
+  VersionDate date
+  VersionNotes text
+  Architect varchar(255)
+  Engineer varchar(255)
+  IsActive boolean
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblPlanElevationOptions {
+  PlanElevationOptionID int [pk]
+  PlanElevationID int [ref: > TblPlanElevations.PlanElevationID]
+  OptionName varchar(100)
+  OptionTypeID int [ref: > TblOptionTypes.OptionTypeID]
+  OptionDescription text
+  BedroomCount int
+  BathroomCount int
+  RoomID int [ref: > TblRooms.RoomID]
+  InsideStudsHeatedSqFt int
+  OutsideStudsHeatedSqFt int
+  OutsideVeneerHeatedSqFt int
+  InsideStudsUnheatedSqFt int
+  OutsideStudsUnheatedSqFt int
+  OutsideVeneerUnheatedSqFt int
+  InsideStudsTotalSqFt int
+  OutsideStudsTotalSqFt int
+  OutsideVeneerTotalSqFt int
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblRooms {
+  RoomID int [pk]
+  PlanElevationOptionID int [ref: > TblPlanElevationOptions.PlanElevationOptionID]
+  RoomName varchar(100)
+  RoomType varchar(50)
+  RoomSqFt decimal
+  IsHeated boolean
+  IsActive boolean
+  FloorLevel varchar(50)
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblJobs {
+  JobID int [pk]
+  JobNumber varchar(100)
+  PlanElevationOptionID int [ref: > TblPlanElevationOptions.PlanElevationOptionID]
+  CommunityID int [ref: > TblCommunities.CommunityID]
+  IsTemplate boolean
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblItems {
+  ItemID int [pk]
+  ItemName varchar(100)
+  ItemType varchar(50)
+  CostCodeID int [ref: > TblCostCodes.CostCodeID]
+  FormulaID int [ref: > TblFormulas.FormulaID]
+  DefaultUnit varchar(50)
+  Description text
+  IsActive boolean
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblProducts {
+  ProductID int [pk]
+  ItemID int [ref: > TblItems.ItemID]
+  ProductDescription varchar(255)
+  SKU varchar(100)
+  Unit varchar(50)
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblTakeoffs {
+  TakeoffID int [pk]
+  JobID int [ref: > TblJobs.JobID]
+  ProductID int [ref: > TblProducts.ProductID]
+  Quantity decimal
+  UnitPrice decimal
+  ExtendedPrice decimal
+  VendorID int [ref: > TblVendors.VendorID]
+  Notes text
+  TakeoffDate date
+  IsOverride boolean
+  Status varchar(50)
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblVendorPricingHistory {
+  PricingID int [pk]
+  VendorID int [ref: > TblVendors.VendorID]
+  ProductID int [ref: > TblProducts.ProductID]
+  Price decimal
+  EffectiveDate date
+  ExpirationDate date
+  IsCurrentPrice boolean
+  PriceFactor decimal
+  PriceType varchar(50)
+  VendorSKU varchar(100)
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblVendors {
+  VendorID int [pk]
+  VendorName varchar(255)
+  ContactName varchar(100)
+  Email varchar(100)
+  Phone varchar(50)
+  Website varchar(255)
+  IsActive boolean
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblCostGroups {
+  CostGroupID int [pk]
+  CostGroup varchar(50)
+  CostGroupName varchar(255)
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblCostCodes {
+  CostCodeID int [pk]
+  CostGroupID int [ref: > TblCostGroups.CostGroupID]
+  CostCode varchar(50)
+  CostCodeDescription varchar(255)
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblFormulas {
+  FormulaID int [pk]
+  FormulaName varchar(100)
+  FormulaText text
+  FormulaType varchar(50)
+  ExampleInputs json
+  ExpectedOutput varchar(100)
+  DependsOnFields varchar(255)
+  CalculationOrder int
+  IsActive boolean
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblOptionTypes {
+  OptionTypeID int [pk]
+  OptionTypeName varchar(100)
+  Description text
+  IsActive boolean
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblCommunities {
+  CommunityID int [pk]
+  CommunityName varchar(255)
+  DivisionID int [ref: > TblDivisions.DivisionID]
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblDivisions {
+  DivisionID int [pk]
+  CompanyName varchar(255)
+  ContactName varchar(100)
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblFiles {
+  FileID int [pk]
+  FileName varchar(255)
+  FilePath varchar(1024)
+  FileURL varchar(1024)
+  FileType varchar(50)
+  LinkedObjectID int
+  LinkedObjectType varchar(50)
+  UploadedBy int
+  Description text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+
+Table TblItemAttributes {
+  AttributeID int [pk]
+  ItemID int [ref: > TblItems.ItemID]
+  AttributeName varchar(100)
+  AttributeValue varchar(100)
+  Unit varchar(50)
+  SortOrder int
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblProductAttributes {
+  ProductAttributeID int [pk]
+  ProductID int [ref: > TblProducts.ProductID]
+  AttributeID int [ref: > TblItemAttributes.AttributeID]
+  AttributeValue varchar(100)
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblSelections {
+  SelectionID int [pk]
+  JobID int [ref: > TblJobs.JobID]
+  ProductID int [ref: > TblProducts.ProductID]
+  SelectionName varchar(100)
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblQuotes {
+  QuoteID int [pk]
+  JobID int [ref: > TblJobs.JobID]
+  VendorID int [ref: > TblVendors.VendorID]
+  QuoteDate date
+  QuoteTotal decimal
+  Status varchar(50)
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblQuoteLineItems {
+  QuoteLineItemID int [pk]
+  QuoteID int [ref: > TblQuotes.QuoteID]
+  ProductID int [ref: > TblProducts.ProductID]
+  Quantity decimal
+  UnitPrice decimal
+  TotalPrice decimal
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
+
+Table TblSpecifications {
+  SpecificationID int [pk]
+  JobID int [ref: > TblJobs.JobID]
+  SpecCategory varchar(100)
+  SpecName varchar(100)
+  SpecValue varchar(255)
+  Unit varchar(50)
+  Notes text
+  CreatedAt timestamp
+  UpdatedAt timestamp
+}
