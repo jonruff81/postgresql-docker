@@ -1,0 +1,43 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Database files
+*.sql.gz
+*.dump
+*.backup
+
+# Logs
+logs/
+*.log
+
+# Backups
+backups/
+
+# Docker volumes data
+pgdata/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Node modules (if using Node.js tools)
+node_modules/
+
+# Python cache (if using Python tools)
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporary files
+temp/
+tmp/ 
