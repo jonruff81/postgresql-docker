@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Quote{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Edit Quote #{{ quote.quote_number }}</h5>
+                    <div>
+                        <a href="{{ url_for('view_quote', quote_id=quote.quote_id) }}" class="btn btn-secondary btn-sm">View</a>
+                        <a href="{{ url_for('quotes_list') }}" class="btn btn-outline-secondary btn-sm">Back to List</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="vendor_id" class="form-label">Vendor *</label>
+                                    <select class="form-select" id="vendor_id" name="vendor_id" required>
+                                        <option value="">Select Vendor</option>
+                                        {% for vendor in vendors %}
+                                        <option value="{{ vendor.vendor_id }}" 
+                                                {% if quote.vendor_id == vendor.vendor_id %}selected{% endif %}>
+                                            {{ vendor.vendor_name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="quote_number" class="form-label">Quote Number</label>
+                                    <input type="text" class="form-control" id="quote_number" name="quote_number" 
+                                           value="{{ quote.quote_number or '' }}" placeholder="Auto-generated if blank">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="quote_date" class="form-label">Quote Date *</label>
+                                    <input type="date" class="form-control" id="quote_date" name="quote_date" 
+                                           value="{{ quote.quote_date.strftime('%Y-%m-%d') if quote.quote_date else '' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="expiration_date" class="form-label">Expiration Date</label>
+                                    <input type="date" class="form-control" id="expiration_date" name="expiration_date" 
+                                           value="{{ quote.expiration_date.strftime('%Y-%m-%d') if quote.expiration_date else '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select class="form-select" id="status" name="status">
+                                        <option value="active" {% if quote.status == 'active' %}selected{% endif %}>Active</option>
+                                        <option value="expired" {% if quote.status == 'expired' %}selected{% endif %}>Expired</option>
+                                        <option value="accepted" {% if quote.status == 'accepted' %}selected{% endif %}>Accepted</option>
+                                        <option value="rejected" {% if quote.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                                        <option value="pending" {% if quote.status == 'pending' %}selected{% endif %}>Pending</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="plan_option_id" class="form-label">Plan Option</label>
+                                    <select class="form-select" id="plan_option_id" name="plan_option_id">
+                                        <option value="">Select Plan Option</option>
+                                        {% for option in plan_options %}
+                                        <option value="{{ option.plan_option_id }}" 
+                                                {% if quote.plan_option_id == option.plan_option_id %}selected{% endif %}>
+                                            {{ option.plan_full_name }} - {{ option.option_name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="total_amount" class="form-label">Total Amount</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="total_amount" name="total_amount" 
+                                               step="0.01" value="{{ quote.total_amount or '' }}" placeholder="0.00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="contact_person" class="form-label">Contact Person</label>
+                                    <input type="text" class="form-control" id="contact_person" name="contact_person" 
+                                           value="{{ quote.contact_person or '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="contact_email" class="form-label">Contact Email</label>
+                                    <input type="email" class="form-control" id="contact_email" name="contact_email" 
+                                           value="{{ quote.contact_email or '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="contact_phone" class="form-label">Contact Phone</label>
+                                    <input type="tel" class="form-control" id="contact_phone" name="contact_phone" 
+                                           value="{{ quote.contact_phone or '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ quote.notes or '' }}</textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <button type="submit" class="btn btn-primary">Update Quote</button>
+                                <a href="{{ url_for('view_quote', quote_id=quote.quote_id) }}" class="btn btn-secondary">Cancel</a>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('quote_line_items', quote_id=quote.quote_id) }}" class="btn btn-info">Manage Line Items</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('quote_line_items', quote_id=quote.quote_id) }}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-list"></i> Manage Line Items
+                        </a>
+                        <form method="POST" action="{{ url_for('delete_quote', quote_id=quote.quote_id) }}" 
+                              onsubmit="return confirm('Are you sure you want to delete this quote? This will also delete all line items and attachments.')" class="mb-0">
+                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                <i class="fas fa-trash"></i> Delete Quote
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Quote Information</h6>
+                </div>
+                <div class="card-body">
+                    <small class="text-muted">
+                        <div><strong>Created:</strong> {{ quote.created_date.strftime('%Y-%m-%d %H:%M') if quote.created_date else 'N/A' }}</div>
+                        <div><strong>Last Updated:</strong> {{ quote.updated_date.strftime('%Y-%m-%d %H:%M') if quote.updated_date else 'N/A' }}</div>
+                        <div><strong>Quote ID:</strong> {{ quote.quote_id }}</div>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-calculate total if line items are present
+document.addEventListener('DOMContentLoaded', function() {
+    // You can add JavaScript here for dynamic calculations if needed
+});
+</script>
+{% endblock %}

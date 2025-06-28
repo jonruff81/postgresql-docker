@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}Record Details - {{ table_name|title }} - PostgreSQL Takeoff Database{% endblock %}
+{% block page_title %}Record Details: {{ table_name }}{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('view_table', table_name=table_name) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Table
+    </a>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-house"></i> Dashboard
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Record Header -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h6 class="card-title mb-1">
+                            <i class="bi bi-file-earmark-text"></i> Record ID: {{ record[columns[0].column_name] }}
+                        </h6>
+                        <p class="text-muted mb-0">
+                            Viewing record from table: <strong>{{ table_name }}</strong>
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-warning btn-sm">
+                                <i class="bi bi-pencil"></i> Edit
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                    onclick="deleteThisRecord()">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Record Details -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-list-ul"></i> Field Details
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for column in columns %}
+                    <div class="col-md-6 mb-4">
+                        <div class="border rounded p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <label class="form-label fw-bold mb-1">
+                                    {{ column.column_name }}
+                                    {% if column.is_nullable == 'NO' %}
+                                        <span class="badge bg-warning ms-1">Required</span>
+                                    {% endif %}
+                                </label>
+                                <small class="text-muted">
+                                    {{ column.data_type }}
+                                    {% if column.character_maximum_length %}
+                                        ({{ column.character_maximum_length }})
+                                    {% endif %}
+                                </small>
+                            </div>
+                            
+                            <div class="field-value">
+                                {% set value = record[column.column_name] %}
+                                {% if value is none %}
+                                    <span class="text-muted fst-italic">NULL</span>
+                                {% elif column.data_type == 'boolean' %}
+                                    {% if value %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> True
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-x-circle"></i> False
+                                        </span>
+                                    {% endif %}
+                                {% elif column.data_type in ['timestamp', 'date'] %}
+                                {% else %}
+                                    {# Check for descriptive field for foreign key columns #}
+                                    {% set desc_value = None %}
+                                    {% for key, val in record.items() %}
+                                        {% if key.startswith(column.column_name ~ '__') %}
+                                            {% set desc_value = val %}
+                                            {% break %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {{ desc_value if desc_value else value }}
+                                {% endif %}
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-calendar text-muted me-2"></i>
+                                        <span>{{ value.strftime('%Y-%m-%d %H:%M:%S') if value else 'Not set' }}</span>
+                                    </div>
+                                {% elif column.data_type in ['numeric', 'decimal'] and value %}
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-currency-dollar text-muted me-2"></i>
+                                        <span class="fw-bold">{{ "{:,.2f}".format(value) }}</span>
+                                    </div>
+                                {% elif column.data_type in ['integer', 'bigint'] and value %}
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-hash text-muted me-2"></i>
+                                        <span class="fw-bold">{{ "{:,}".format(value) }}</span>
+                                    </div>
+                                {% elif column.data_type in ['text', 'character varying'] %}
+                                    {% if value and value|string|length > 100 %}
+                                        <div class="text-area-field">
+                                            <div id="field-{{ loop.index }}" class="field-preview" style="max-height: 100px; overflow: hidden;">
+                                                {{ value|string|truncate(150) }}
+                                            </div>
+                                            <button type="button" class="btn btn-link btn-sm p-0 mt-1" 
+                                                    onclick="toggleFieldExpansion({{ loop.index }})">
+                                                <i class="bi bi-arrows-expand"></i> Show more
+                                            </button>
+                                            <div id="field-full-{{ loop.index }}" class="field-full" style="display: none;">
+                                                <pre class="bg-light p-2 rounded">{{ value }}</pre>
+                                                <button type="button" class="btn btn-link btn-sm p-0 mt-1" 
+                                                        onclick="toggleFieldExpansion({{ loop.index }})">
+                                                    <i class="bi bi-arrows-collapse"></i> Show less
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <span>{{ value or 'Empty' }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span>{{ value }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if column.column_default %}
+                            <small class="text-muted d-block mt-2">
+                                Default: {{ column.column_default }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Related Records Section -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-diagram-3"></i> Related Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Quick Actions -->
+                    <div class="col-md-6">
+                        <h6>Quick Actions</h6>
+                        <div class="list-group">
+                            <a href="{{ url_for('view_table', table_name=table_name) }}" 
+                               class="list-group-item list-group-item-action">
+                                <i class="bi bi-table text-primary"></i>
+                                View all {{ table_name }} records
+                            </a>
+                            <a href="{{ url_for('dashboard') }}" 
+                               class="list-group-item list-group-item-action">
+                                <i class="bi bi-house text-secondary"></i>
+                                Return to dashboard
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Record Statistics -->
+                    <div class="col-md-6">
+                        <h6>Record Information</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center p-2 border rounded">
+                                    <i class="bi bi-list-columns text-info"></i>
+                                    <div class="fw-bold">{{ columns|length }}</div>
+                                    <small class="text-muted">Fields</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-2 border rounded">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                    <div class="fw-bold">
+                                        {% set non_null_count = 0 %}
+                                        {% for column in columns %}
+                                            {% if record[column.column_name] is not none %}
+                                                {% set non_null_count = non_null_count + 1 %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {{ non_null_count }}
+                                    </div>
+                                    <small class="text-muted">Populated</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleFieldExpansion(fieldIndex) {
+    const preview = document.getElementById('field-' + fieldIndex);
+    const full = document.getElementById('field-full-' + fieldIndex);
+    
+    if (preview.style.display === 'none') {
+        preview.style.display = 'block';
+        full.style.display = 'none';
+    } else {
+        preview.style.display = 'none';
+        full.style.display = 'block';
+    }
+}
+
+function deleteThisRecord() {
+    if (confirmDelete('Are you sure you want to delete this record? This action cannot be undone.')) {
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/table/{{ table_name }}/delete/{{ record[columns[0].column_name] }}';
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Copy field value to clipboard
+function copyToClipboard(text, fieldName) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function() {
+            showToast(fieldName + ' copied to clipboard');
+        });
+    }
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-message';
+    toast.innerHTML = '<i class="bi bi-check-circle text-success"></i> ' + message;
+    toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: white; border: 1px solid #ccc; padding: 10px; border-radius: 5px; z-index: 9999;';
+    document.body.appendChild(toast);
+    setTimeout(function() { 
+        if (toast.parentNode) toast.parentNode.removeChild(toast); 
+    }, 2000);
+}
+
+// Add copy functionality to field values on click
+$(document).ready(function() {
+    $('.field-value').on('click', function() {
+        const fieldValue = $(this).text().trim();
+        const fieldName = $(this).closest('.border').find('label').text().trim();
+        if (fieldValue && fieldValue !== 'NULL' && fieldValue !== 'Empty') {
+            copyToClipboard(fieldValue, fieldName);
+        }
+    });
+    
+    // Add cursor pointer to clickable fields
+    $('.field-value').css('cursor', 'pointer');
+    $('.field-value').attr('title', 'Click to copy to clipboard');
+});
+</script>
+{% endblock %}

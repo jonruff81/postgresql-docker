@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Vendor Quotes - PostgreSQL Takeoff Database{% endblock %}
+{% block page_title %}Vendor Quotes{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('new_quote') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> New Quote
+    </a>
+    <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_quotes }}</h4>
+                            <p class="mb-0">Total Quotes</p>
+                        </div>
+                        <div>
+                            <i class="bi bi-file-earmark-text fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ active_quotes }}</h4>
+                            <p class="mb-0">Active Quotes</p>
+                        </div>
+                        <div>
+                            <i class="bi bi-check-circle fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">${{ total_value|round(2) }}</h4>
+                            <p class="mb-0">Total Value</p>
+                        </div>
+                        <div>
+                            <i class="bi bi-currency-dollar fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ unique_vendors }}</h4>
+                            <p class="mb-0">Vendors</p>
+                        </div>
+                        <div>
+                            <i class="bi bi-building fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form method="GET" class="d-flex">
+                <input type="text" name="search" class="form-control me-2" placeholder="Search quotes..." value="{{ search }}">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="bi bi-search"></i>
+                </button>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <form method="GET" class="d-flex">
+                <input type="hidden" name="search" value="{{ search }}">
+                <select name="status" class="form-select me-2" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    <option value="active" {{ 'selected' if status_filter == 'active' else '' }}>Active</option>
+                    <option value="expired" {{ 'selected' if status_filter == 'expired' else '' }}>Expired</option>
+                    <option value="accepted" {{ 'selected' if status_filter == 'accepted' else '' }}>Accepted</option>
+                    <option value="rejected" {{ 'selected' if status_filter == 'rejected' else '' }}>Rejected</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quotes Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Vendor Quotes</h5>
+        </div>
+        <div class="card-body">
+            {% if quotes %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Quote #</th>
+                            <th>Vendor</th>
+                            <th>Quote Date</th>
+                            <th>Expiration</th>
+                            <th>Status</th>
+                            <th>Total Amount</th>
+                            <th>Line Items</th>
+                            <th>Attachments</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for quote in quotes %}
+                        <tr>
+                            <td>
+                                <strong>{{ quote.quote_number or 'Q-' + quote.quote_id|string }}</strong>
+                            </td>
+                            <td>{{ quote.vendor_name }}</td>
+                            <td>{{ quote.quote_date.strftime('%Y-%m-%d') if quote.quote_date else '-' }}</td>
+                            <td>
+                                {% if quote.expiration_date %}
+                                    {% set is_expired = quote.expiration_date < today %}
+                                    <span class="badge {{ 'bg-danger' if is_expired else 'bg-success' }}">
+                                        {{ quote.expiration_date.strftime('%Y-%m-%d') }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">No expiration</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% set status_class = {
+                                    'active': 'success',
+                                    'expired': 'danger',
+                                    'accepted': 'primary',
+                                    'rejected': 'secondary',
+                                    'superseded': 'warning'
+                                } %}
+                                <span class="badge bg-{{ status_class.get(quote.status, 'secondary') }}">
+                                    {{ quote.status|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if quote.total_amount %}
+                                    ${{ "{:,.2f}".format(quote.total_amount) }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ quote.line_item_count or 0 }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ quote.attachment_count or 0 }}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('view_quote', quote_id=quote.quote_id) }}" 
+                                       class="btn btn-sm btn-outline-primary" title="View Quote">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('edit_quote', quote_id=quote.quote_id) }}" 
+                                       class="btn btn-sm btn-outline-secondary" title="Edit Quote">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{{ url_for('quote_line_items', quote_id=quote.quote_id) }}" 
+                                       class="btn btn-sm btn-outline-success" title="Manage Line Items">
+                                        <i class="bi bi-list-ul"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <nav aria-label="Quote pagination">
+                <ul class="pagination justify-content-center">
+                    {% if current_page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ current_page - 1 }}&search={{ search }}&status={{ status_filter }}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in range(1, total_pages + 1) %}
+                        {% if page_num == current_page %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% elif page_num <= current_page + 2 and page_num >= current_page - 2 %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_num }}&search={{ search }}&status={{ status_filter }}">{{ page_num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if current_page < total_pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ current_page + 1 }}&search={{ search }}&status={{ status_filter }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-file-earmark-text fs-1 text-muted"></i>
+                <h5 class="text-muted mt-3">No quotes found</h5>
+                <p class="text-muted">Get started by creating your first vendor quote.</p>
+                <a href="{{ url_for('new_quote') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create Quote
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Auto-refresh status every 30 seconds to check for expired quotes
+    setInterval(function() {
+        // Only refresh if no search/filter is active
+        if (!{{ 'true' if search or status_filter else 'false' }}) {
+            location.reload();
+        }
+    }, 30000);
+});
+</script>
+{% endblock %}

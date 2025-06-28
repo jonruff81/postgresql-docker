@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Record - {{ table_name|title }} - PostgreSQL Takeoff Database{% endblock %}
+{% block page_title %}Edit Record: {{ table_name }}{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('view_record', table_name=table_name, record_id=record[columns[0].column_name]) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Cancel
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="POST">
+    <div class="row">
+        {% for column in columns %}
+        <div class="col-md-6 mb-3">
+            <label class="form-label fw-bold">{{ column.column_name }}</label>
+            {% set value = record[column.column_name] %}
+            
+            {% if column.column_name in fk_data %}
+                {% set fk = fk_data[column.column_name] %}
+                <select class="form-select" name="{{ column.column_name }}">
+                    <option value="">-- Select --</option>
+                    {% for option in fk.options %}
+                        <option value="{{ option[fk.pk_col] }}" {% if option[fk.pk_col] == value %}selected{% endif %}>
+                            {% set display_text = [] %}
+                            {% for col in fk.desc_cols %}
+                                {% if option[col] is not none %}{% do display_text.append(option[col]|string) %}{% endif %}
+                            {% endfor %}
+                            {{ display_text|join(' - ') }}
+                        </option>
+                    {% endfor %}
+                </select>
+            {% elif column.data_type in ['integer', 'bigint', 'numeric', 'decimal'] %}
+                <input type="number" class="form-control" name="{{ column.column_name }}" value="{{ value or '' }}" {% if column.is_nullable == 'NO' %}required{% endif %}>
+            {% elif column.data_type == 'boolean' %}
+                <select class="form-select" name="{{ column.column_name }}">
+                    <option value="true" {% if value %}selected{% endif %}>True</option>
+                    <option value="false" {% if value is not none and not value %}selected{% endif %}>False</option>
+                </select>
+            {% elif column.data_type in ['timestamp', 'date', 'timestamp without time zone', 'timestamp with time zone'] %}
+                <input type="datetime-local" class="form-control" name="{{ column.column_name }}" value="{{ value.strftime('%Y-%m-%dT%H:%M:%S') if value else '' }}">
+            {% else %}
+                <input type="text" class="form-control" name="{{ column.column_name }}" value="{{ value or '' }}" {% if column.is_nullable == 'NO' %}required{% endif %}>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    <button type="submit" class="btn btn-primary">
+        <i class="bi bi-save"></i> Save Changes
+    </button>
+</form>
+{% endblock %}

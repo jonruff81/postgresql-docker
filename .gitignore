@@ -38,6 +38,12 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Virtual environments
+venv/
+web_ui/venv/
+env/
+ENV/
+
 # Temporary files
 temp/
-tmp/ 
+tmp/

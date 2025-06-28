@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}{{ table_name|title }} - PostgreSQL Takeoff Database{% endblock %}
+{% block page_title %}Table: {{ table_name }}{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+    <a href="{{ url_for('new_record', table_name=table_name) }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> New Record
+    </a>
+    <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+    <form method="POST" action="{{ url_for('execute_formulas_route') }}" style="display: inline;">
+        <button type="submit" class="btn btn-outline-success">
+            <i class="bi bi-calculator"></i> Execute Formulas
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Search and Filters -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <form method="GET" class="d-flex">
+            <input type="text" name="search" value="{{ search }}" 
+                   class="form-control me-2" placeholder="Search records...">
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-search"></i>
+            </button>
+            {% if search %}
+            <a href="{{ url_for('view_table', table_name=table_name) }}" 
+               class="btn btn-outline-secondary ms-2">
+                <i class="bi bi-x"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Data Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body p-0">
+                {% if records %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                {% for column in columns %}
+                                <th scope="col">{{ column.column_name }}</th>
+                                {% endfor %}
+                                <th scope="col" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr>
+                                {% for column in columns %}
+                                <td>
+                                    {% set value = record[column.column_name] %}
+                                    
+                                    {% set desc_value = namespace(found=None) %}
+                                    {% for key, val in record.items() %}
+                                        {% if key.startswith(column.column_name ~ '__') and val is not none %}
+                                            {% set desc_value.found = val %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% set final_value = desc_value.found if desc_value.found is not none else value %}
+
+                                    {{ final_value }}
+                                </td>
+                                {% endfor %}
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('view_record', table_name=table_name, record_id=record[columns[0].column_name]) }}" 
+                                           class="btn btn-sm btn-outline-info" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('edit_record', table_name=table_name, record_id=record[columns[0].column_name]) }}" 
+                                           class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('duplicate_record_route', table_name=table_name, record_id=record[columns[0].column_name]) }}" style="display: inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Duplicate">
+                                                <i class="bi bi-files"></i>
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Delete" 
+                                                onclick="confirmDelete('{{ table_name }}', '{{ record[columns[0].column_name] }}')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <h5 class="text-muted">No records found</h5>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <nav>
+            <ul class="pagination justify-content-center">
+                <li class="page-item {{ 'disabled' if current_page <= 1 else '' }}">
+                    <a class="page-link" href="{{ url_for('view_table', table_name=table_name, page=current_page-1, search=search) }}">Previous</a>
+                </li>
+                {% for page_num in range(1, total_pages + 1) %}
+                <li class="page-item {{ 'active' if page_num == current_page else '' }}">
+                    <a class="page-link" href="{{ url_for('view_table', table_name=table_name, page=page_num, search=search) }}">{{ page_num }}</a>
+                </li>
+                {% endfor %}
+                <li class="page-item {{ 'disabled' if current_page >= total_pages else '' }}">
+                    <a class="page-link" href="{{ url_for('view_table', table_name=table_name, page=current_page+1, search=search) }}">Next</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function confirmDelete(tableName, recordId) {
+    if (confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
+        fetch(`/table/${tableName}/delete/${recordId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Error deleting record');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting record');
+        });
+    }
+}
+</script>
+{% endblock %}

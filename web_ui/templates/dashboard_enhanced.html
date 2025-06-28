@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}PostgreSQL Takeoff Database{% endblock %}
+{% block page_title %}Database Dashboard{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+    <form method="POST" action="{{ url_for('execute_formulas_route') }}" style="display: inline;">
+        <button type="submit" class="btn btn-outline-success">
+            <i class="bi bi-calculator"></i> Execute All Formulas
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Database Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ tables|length }}</h4>
+                            <p class="mb-0">Tables</p>
+                        </div>
+                        <div>
+                            <i class="bi bi-table fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ tables|sum(attribute='record_count') }}</h4>
+                            <p class="mb-0">Total Records</p>
+                        </div>
+                        <div>
+                            <i class="bi bi-database fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ now }}</h4>
+                            <p class="mb-0">Last Updated</p>
+                        </div>
+                        <div>
+                            <i class="bi bi-clock fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">Connected</h4>
+                            <p class="mb-0">Database Status</p>
+                        </div>
+                        <div>
+                            <i class="bi bi-check-circle fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('new_record', table_name='jobs') }}" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                                <i class="bi bi-plus-circle"></i><br>
+                                New Job
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('new_record', table_name='items') }}" class="btn btn-outline-success btn-lg w-100 mb-2">
+                                <i class="bi bi-box"></i><br>
+                                New Item
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('new_record', table_name='vendors') }}" class="btn btn-outline-info btn-lg w-100 mb-2">
+                                <i class="bi bi-building"></i><br>
+                                New Vendor
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('view_table', table_name='takeoffs') }}" class="btn btn-outline-warning btn-lg w-100 mb-2">
+                                <i class="bi bi-calculator"></i><br>
+                                View Takeoffs
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('quotes_list') }}" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                                <i class="bi bi-file-earmark-text"></i><br>
+                                Vendor Quotes
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('new_quote') }}" class="btn btn-outline-success btn-lg w-100 mb-2">
+                                <i class="bi bi-plus-circle"></i><br>
+                                New Quote
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('view_table', table_name='vendor_pricing') }}" class="btn btn-outline-info btn-lg w-100 mb-2">
+                                <i class="bi bi-currency-dollar"></i><br>
+                                Vendor Pricing
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('view_table', table_name='vendors') }}" class="btn btn-outline-secondary btn-lg w-100 mb-2">
+                                <i class="bi bi-building"></i><br>
+                                Vendors
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tables Overview -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Database Tables</h5>
+                    <small class="text-muted">{{ tables|length }} tables found</small>
+                </div>
+                <div class="card-body">
+                    {% if tables %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Table Name</th>
+                                    <th>Description</th>
+                                    <th class="text-center">Columns</th>
+                                    <th class="text-center">Records</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for table in tables %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ table.name }}</strong>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ table.comment }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary">{{ table.column_count }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ table.record_count }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('view_table', table_name=table.name) }}" 
+                                               class="btn btn-sm btn-outline-primary" title="View Records">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('new_record', table_name=table.name) }}" 
+                                               class="btn btn-sm btn-outline-success" title="Add Record">
+                                                <i class="bi bi-plus"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <h5 class="text-muted">No tables found in the database</h5>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity or Statistics (Future Enhancement) -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Key Tables</h5>
+                </div>
+                <div class="card-body">
+                    {% for table in tables %}
+                    {% if table.name in ['jobs', 'takeoffs', 'items', 'vendors'] %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <strong>{{ table.name|title }}</strong>
+                            <br>
+                            <small class="text-muted">{{ table.record_count }} records</small>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('view_table', table_name=table.name) }}" class="btn btn-sm btn-outline-primary">
+                                View <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">System Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Database:</strong> PostgreSQL</p>
+                    <p><strong>Schema:</strong> takeoff</p>
+                    <p><strong>Features:</strong></p>
+                    <ul>
+                        <li>✅ File Attachments</li>
+                        <li>✅ Record Duplication</li>
+                        <li>✅ Automated Calculations</li>
+                        <li>✅ Foreign Key Relationships</li>
+                        <li>✅ Search & Filter</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

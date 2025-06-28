@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Basic Page</title>
+</head>
+<body style="font-family: sans-serif; margin: 20px;">
+    <h1>Database Tables</h1>
+    <p><b>Server Time:</b> {{ now }}</p>
+    <ul>
+    {% for table in tables %}
+        <li><a href="{{ url_for('view_table', table_name=table.name) }}">{{ table.name }}</a> - {{ table.record_count }} records</li>
+    {% endfor %}
+    </ul>
+    <hr>
+    <p>If you see this list, everything is working!</p>
+    <p>Try these other pages:</p>
+    <ul>
+        <li><a href="/debug">Debug Info</a></li>
+        <li><a href="/test">Test Page</a></li>
+        <li><a href="/nojs">No-JavaScript Version</a></li>
+    </ul>
+</body>
+</html>

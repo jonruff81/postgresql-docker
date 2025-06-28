@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}New Quote - PostgreSQL Takeoff Database{% endblock %}
+{% block page_title %}Create New Vendor Quote{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('quotes_list') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Quotes
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quote Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <!-- Vendor Selection -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="vendor_id" class="form-label">Vendor <span class="text-danger">*</span></label>
+                                <select class="form-select" id="vendor_id" name="vendor_id" required>
+                                    <option value="">Select Vendor...</option>
+                                    {% for vendor in vendors %}
+                                    <option value="{{ vendor.vendor_id }}" {{ 'selected' if request.form.get('vendor_id') == vendor.vendor_id|string else '' }}>
+                                        {{ vendor.vendor_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">Select the vendor providing this quote</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="quote_number" class="form-label">Quote Number</label>
+                                <input type="text" class="form-control" id="quote_number" name="quote_number" 
+                                       value="{{ request.form.get('quote_number', '') }}" placeholder="Q-2024-001">
+                                <small class="form-text text-muted">Leave blank to auto-generate</small>
+                            </div>
+                        </div>
+
+                        <!-- Dates -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="quote_date" class="form-label">Quote Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="quote_date" name="quote_date" 
+                                       value="{{ request.form.get('quote_date', today) }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="expiration_date" class="form-label">Expiration Date</label>
+                                <input type="date" class="form-control" id="expiration_date" name="expiration_date" 
+                                       value="{{ request.form.get('expiration_date', '') }}">
+                                <small class="form-text text-muted">When does this quote expire?</small>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="contact_person" class="form-label">Contact Person</label>
+                                <input type="text" class="form-control" id="contact_person" name="contact_person" 
+                                       value="{{ request.form.get('contact_person', '') }}" placeholder="John Smith">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="contact_email" class="form-label">Contact Email</label>
+                                <input type="email" class="form-control" id="contact_email" name="contact_email" 
+                                       value="{{ request.form.get('contact_email', '') }}" placeholder="john@vendor.com">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="contact_phone" class="form-label">Contact Phone</label>
+                                <input type="tel" class="form-control" id="contact_phone" name="contact_phone" 
+                                       value="{{ request.form.get('contact_phone', '') }}" placeholder="(555) 123-4567">
+                            </div>
+                        </div>
+
+                        <!-- Total Amount and Status -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="total_amount" class="form-label">Total Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="total_amount" name="total_amount" 
+                                           step="0.01" value="{{ request.form.get('total_amount', '') }}" placeholder="34885.00">
+                                </div>
+                                <small class="form-text text-muted">Total quote value (can be calculated from line items)</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="active" {{ 'selected' if request.form.get('status', 'active') == 'active' else '' }}>Active</option>
+                                    <option value="expired" {{ 'selected' if request.form.get('status') == 'expired' else '' }}>Expired</option>
+                                    <option value="accepted" {{ 'selected' if request.form.get('status') == 'accepted' else '' }}>Accepted</option>
+                                    <option value="rejected" {{ 'selected' if request.form.get('status') == 'rejected' else '' }}>Rejected</option>
+                                    <option value="superseded" {{ 'selected' if request.form.get('status') == 'superseded' else '' }}>Superseded</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="Additional notes about this quote...">{{ request.form.get('notes', '') }}</textarea>
+                        </div>
+
+                        <!-- File Upload Section -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-paperclip"></i> Quote Attachments
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="quote_files" class="form-label">Upload Quote Files</label>
+                                    <input type="file" class="form-control" id="quote_files" name="quote_files" 
+                                           multiple accept=".pdf,.xlsx,.xls,.doc,.docx,.png,.jpg,.jpeg">
+                                    <small class="form-text text-muted">
+                                        Upload PDF, Excel, Word, or image files. Maximum 16MB per file.
+                                        <br>Supported formats: PDF, Excel (.xlsx, .xls), Word (.doc, .docx), Images (.png, .jpg, .jpeg)
+                                    </small>
+                                </div>
+                                <div id="file-preview" class="mt-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- Plan/Job Association (Optional) -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-house"></i> Plan & Item Association (Optional)
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="plan_option_id" class="form-label">Plan Option</label>
+                                        <select class="form-select" id="plan_option_id" name="plan_option_id">
+                                            <option value="">Select Plan Option...</option>
+                                            {% for plan_option in plan_options %}
+                                            <option value="{{ plan_option.plan_option_id }}" {{ 'selected' if request.form.get('plan_option_id') == plan_option.plan_option_id|string else '' }}>
+                                                {{ plan_option.plan_full_name }} - {{ plan_option.option_name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="item_id" class="form-label">Item Category ⭐ NEW</label>
+                                        <select class="form-select" id="item_id" name="item_id">
+                                            <option value="">Select Item...</option>
+                                            {% for item in items %}
+                                            <option value="{{ item.item_id }}" {{ 'selected' if request.form.get('item_id') == item.item_id|string else '' }}>
+                                                {{ item.item_name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="form-text text-muted">Links quote to item for product creation</small>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <label for="job_id" class="form-label">Specific Job</label>
+                                        <select class="form-select" id="job_id" name="job_id">
+                                            <option value="">Select Job...</option>
+                                            {% for job in jobs %}
+                                            <option value="{{ job.job_id }}" data-plan-option="{{ job.plan_option_id }}" {{ 'selected' if request.form.get('job_id') == job.job_id|string else '' }}>
+                                                {{ job.job_name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">
+                                    Associate this quote with plan option and item for automatic product creation when accepted
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('quotes_list') }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                            <div>
+                                <button type="submit" name="action" value="save" class="btn btn-primary">
+                                    <i class="bi bi-check-circle"></i> Create Quote
+                                </button>
+                                <button type="submit" name="action" value="save_and_add_items" class="btn btn-success">
+                                    <i class="bi bi-plus-circle"></i> Create & Add Line Items
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // File preview functionality
+    $('#quote_files').on('change', function() {
+        const files = this.files;
+        const preview = $('#file-preview');
+        preview.empty();
+        
+        if (files.length > 0) {
+            preview.append('<h6>Selected Files:</h6>');
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const size = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                preview.append(`
+                    <div class="alert alert-info p-2 mb-1">
+                        <i class="bi bi-file-earmark"></i> ${file.name} (${size})
+                    </div>
+                `);
+            }
+        }
+    });
+
+    // Plan/Job filtering
+    $('#plan_option_id').on('change', function() {
+        const planOptionId = $(this).val();
+        const jobSelect = $('#job_id');
+        
+        // Show/hide jobs based on selected plan option
+        jobSelect.find('option').each(function() {
+            const option = $(this);
+            if (option.val() === '') {
+                option.show();
+            } else if (planOptionId === '' || option.data('plan-option') == planOptionId) {
+                option.show();
+            } else {
+                option.hide();
+            }
+        });
+        
+        // Reset job selection if current selection is not compatible
+        if (planOptionId !== '') {
+            const currentJob = jobSelect.find('option:selected');
+            if (currentJob.val() !== '' && currentJob.data('plan-option') != planOptionId) {
+                jobSelect.val('');
+            }
+        }
+    });
+
+    // Trigger plan filtering on page load
+    $('#plan_option_id').trigger('change');
+
+    // Auto-generate quote number if vendor is selected and quote number is empty
+    $('#vendor_id').on('change', function() {
+        const quoteNumber = $('#quote_number');
+        if (quoteNumber.val() === '' && $(this).val() !== '') {
+            const vendorName = $(this).find('option:selected').text();
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const suggested = `Q-${year}-${month}${day}-${vendorName.substring(0, 3).toUpperCase()}`;
+            quoteNumber.val(suggested);
+        }
+    });
+});
+</script>
+{% endblock %}
