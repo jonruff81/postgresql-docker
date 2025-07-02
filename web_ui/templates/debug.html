@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Info</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Debug Information</h1>
+    <pre>
+Time: {{ now }}
+Database Status: <span class="{{ 'success' if db_ok else 'error' }}">{{ db_status }}</span>
+
+Tables Found: {{ tables|length }}
+{% if tables %}
+Table List:
+{% for table in tables %}
+- {{ table.name }} ({{ table.record_count }} records)
+{% endfor %}
+{% endif %}
+
+{% if error %}
+Error Details:
+{{ error }}
+{% endif %}
+    </pre>
+</body>
+</html>
