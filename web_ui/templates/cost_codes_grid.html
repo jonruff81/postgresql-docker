@@ -193,26 +193,39 @@
         // Initialize grid when page loads
         document.addEventListener('DOMContentLoaded', function() {
             const gridDiv = document.querySelector('#costCodesGrid');
-            gridApi = agGrid.createGrid(gridDiv, gridOptions);
+            new agGrid.Grid(gridDiv, gridOptions);
         });
 
         // Load data from server
         async function loadData() {
             try {
+                console.log('Starting data load...');
                 showStatus('Loading data...', 'info');
+                
                 const response = await fetch('/api/cost-codes-with-groups');
+                console.log('Response received:', response.status, response.ok);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const data = await response.json();
-                console.log('Loaded data:', data.length, 'records');
+                console.log('Data parsed successfully:', data.length, 'records');
+                console.log('First record:', data[0]);
+                
+                if (!gridApi) {
+                    console.error('GridAPI is not available!');
+                    showStatus('Grid not ready yet', 'error');
+                    return;
+                }
                 
                 originalData = data;
+                console.log('Setting row data...');
                 gridApi.setRowData(data);
+                console.log('Row data set, updating count...');
                 updateRowCount();
                 showStatus(`Loaded ${data.length} cost codes successfully`, 'success');
+                console.log('Data loading complete');
             } catch (error) {
                 console.error('Error loading data:', error);
                 showStatus('Error loading data: ' + error.message, 'error');
