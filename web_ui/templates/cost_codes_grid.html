@@ -194,7 +194,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             const gridDiv = document.querySelector('#costCodesGrid');
             gridApi = agGrid.createGrid(gridDiv, gridOptions);
-            loadData();
         });
 
         // Load data from server
@@ -202,7 +201,13 @@
             try {
                 showStatus('Loading data...', 'info');
                 const response = await fetch('/api/cost-codes-with-groups');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log('Loaded data:', data.length, 'records');
                 
                 originalData = data;
                 gridApi.setRowData(data);
@@ -214,11 +219,13 @@
             }
         }
 
-        // Grid ready event
+        // Grid ready event - load data here when grid is fully initialized
         function onGridReady(params) {
             gridApi = params.api;
             gridColumnApi = params.columnApi;
+            console.log('Grid ready, loading data...');
             fitColumns();
+            loadData(); // Load data after grid is ready
         }
 
         // Cell value changed event
