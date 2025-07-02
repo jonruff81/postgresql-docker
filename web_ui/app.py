@@ -990,6 +990,140 @@ def api_delete_takeoff():
     else:
         return jsonify({'success': False, 'message': 'Failed to delete takeoff'}), 400
 
+# Cost Codes with Groups endpoints
+@app.route('/cost-codes-grid')
+def cost_codes_grid():
+    """Cost codes with groups AG-Grid interface"""
+    return render_template('cost_codes_grid.html')
+
+@app.route('/api/cost-codes-with-groups')
+def api_cost_codes_with_groups():
+    """API endpoint to get cost codes with groups data"""
+    if not db.connect():
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    try:
+        db.cursor.execute("SELECT * FROM takeoff.v_cost_codes_with_groups ORDER BY cost_code")
+        records = db.cursor.fetchall()
+        
+        # Convert to list of dictionaries for JSON serialization
+        data = [dict(record) for record in records]
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"Error getting cost codes with groups: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.disconnect()
+
+@app.route('/api/cost-codes-with-groups/bulk-update', methods=['POST'])
+def api_bulk_update_cost_codes():
+    """API endpoint to bulk update cost codes and groups"""
+    data = request.get_json()
+    
+    if not data or 'updates' not in data:
+        return jsonify({'success': False, 'message': 'No updates provided'}), 400
+    
+    updates = data['updates']
+    if not isinstance(updates, list):
+        return jsonify({'success': False, 'message': 'Updates must be a list'}), 400
+    
+    if not db.connect():
+        return jsonify({'success': False, 'message': 'Database connection failed'}), 500
+    
+    try:
+        updated_count = 0
+        errors = []
+        
+        for update in updates:
+            try:
+                # Get the cost_code_id and cost_group_id for this record
+                db.cursor.execute("""
+                    SELECT cc.cost_code_id, cg.cost_group_id 
+                    FROM takeoff.cost_codes cc
+                    LEFT JOIN takeoff.cost_groups cg ON cc.cost_group_id = cg.cost_group_id
+                    WHERE cc.cost_code = %s
+                """, (update.get('cost_code', ''),))
+                
+                existing = db.cursor.fetchone()
+                if not existing:
+                    errors.append(f"Cost code '{update.get('cost_code', '')}' not found")
+                    continue
+                
+                cost_code_id = existing['cost_code_id']
+                
+                # Update cost_codes table
+                db.cursor.execute("""
+                    UPDATE takeoff.cost_codes 
+                    SET cost_code = %s, cost_code_description = %s
+                    WHERE cost_code_id = %s
+                """, (
+                    update.get('cost_code', ''),
+                    update.get('cost_code_description', ''),
+                    cost_code_id
+                ))
+                
+                # Handle cost group updates
+                cost_group_code = update.get('cost_group_code', '')
+                cost_group_name = update.get('cost_group_name', '')
+                
+                if cost_group_code and cost_group_name:
+                    # Check if cost group exists
+                    db.cursor.execute("""
+                        SELECT cost_group_id FROM takeoff.cost_groups 
+                        WHERE cost_group_code = %s
+                    """, (cost_group_code,))
+                    
+                    group_result = db.cursor.fetchone()
+                    if group_result:
+                        group_id = group_result['cost_group_id']
+                        # Update existing group
+                        db.cursor.execute("""
+                            UPDATE takeoff.cost_groups 
+                            SET cost_group_name = %s
+                            WHERE cost_group_id = %s
+                        """, (cost_group_name, group_id))
+                    else:
+                        # Create new group
+                        db.cursor.execute("""
+                            INSERT INTO takeoff.cost_groups (cost_group_code, cost_group_name)
+                            VALUES (%s, %s) RETURNING cost_group_id
+                        """, (cost_group_code, cost_group_name))
+                        group_id = db.cursor.fetchone()['cost_group_id']
+                    
+                    # Update cost_code to reference the group
+                    db.cursor.execute("""
+                        UPDATE takeoff.cost_codes 
+                        SET cost_group_id = %s
+                        WHERE cost_code_id = %s
+                    """, (group_id, cost_code_id))
+                
+                updated_count += 1
+                
+            except Exception as e:
+                errors.append(f"Error updating record: {str(e)}")
+                continue
+        
+        db.conn.commit()
+        
+        if errors:
+            message = f"Updated {updated_count} records with {len(errors)} errors: {'; '.join(errors[:3])}"
+        else:
+            message = f"Successfully updated {updated_count} records"
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'updated_count': updated_count,
+            'errors': errors
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in bulk update: {e}")
+        db.conn.rollback()
+        return jsonify({'success': False, 'message': f'Update failed: {str(e)}'}), 400
+    finally:
+        db.disconnect()
+
 >>>>>>> 83fd5a998064fe02eb59cf1916948d74f7a65a81
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
