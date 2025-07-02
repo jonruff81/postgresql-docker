@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Record - {{ table_name|title }} - PostgreSQL Takeoff Database{% endblock %}
+{% block page_title %}Edit Record in {{ table_name|title }}{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('view_table', table_name=table_name) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Table
+    </a>
+    <a href="{{ url_for('view_record', table_name=table_name, record_id=record[columns[0].column_name]) }}" class="btn btn-outline-info">
+        <i class="bi bi-eye"></i> View Details
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil-square"></i> Edit Record
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="edit-form">
+                    <div class="row">
+                        {% for column in columns %}
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ column.column_name }}" class="form-label">
+                                <strong>{{ column.column_name }}</strong>
+                                <small class="text-muted">({{ column.data_type }})</small>
+                                {% if column.is_nullable == 'NO' %}
+                                    <span class="text-danger">*</span>
+                                {% endif %}
+                            </label>
+                            
+                            {% set current_value = record[column.column_name] %}
+                            {% set is_id_column = loop.first %}
+                            
+                            {% if column.data_type == 'boolean' %}
+                                <select name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                        class="form-select" {{ 'disabled' if is_id_column else '' }}>
+                                    <option value="">NULL</option>
+                                    <option value="true" {{ 'selected' if current_value == True else '' }}>True</option>
+                                    <option value="false" {{ 'selected' if current_value == False else '' }}>False</option>
+                                </select>
+                            {% elif column.data_type in ['text', 'character varying'] and column.character_maximum_length and column.character_maximum_length > 100 %}
+                                <textarea name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                          class="form-control" rows="3" 
+                                          {{ 'readonly' if is_id_column else '' }}
+                                          {% if column.character_maximum_length %}maxlength="{{ column.character_maximum_length }}"{% endif %}>{{ current_value if current_value is not none else '' }}</textarea>
+                            {% elif column.data_type in ['integer', 'bigint'] %}
+                                <input type="number" name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                       class="form-control" value="{{ current_value if current_value is not none else '' }}"
+                                       {{ 'readonly' if is_id_column else '' }}>
+                            {% elif column.data_type in ['numeric', 'decimal'] %}
+                                <input type="number" step="0.01" name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                       class="form-control" value="{{ current_value if current_value is not none else '' }}"
+                                       {{ 'readonly' if is_id_column else '' }}>
+                            {% elif column.data_type in ['date'] %}
+                                <input type="date" name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                       class="form-control" value="{{ current_value.strftime('%Y-%m-%d') if current_value else '' }}"
+                                       {{ 'readonly' if is_id_column else '' }}>
+                            {% elif column.data_type in ['timestamp', 'timestamp without time zone'] %}
+                                <input type="datetime-local" name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                       class="form-control" value="{{ current_value.strftime('%Y-%m-%dT%H:%M') if current_value else '' }}"
+                                       {{ 'readonly' if is_id_column else '' }}>
+                            {% else %}
+                                <input type="text" name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                       class="form-control" value="{{ current_value if current_value is not none else '' }}"
+                                       {{ 'readonly' if is_id_column else '' }}
+                                       {% if column.character_maximum_length %}maxlength="{{ column.character_maximum_length }}"{% endif %}>
+                            {% endif %}
+                            
+                            {% if is_id_column %}
+                                <div class="form-text">Primary key field (read-only)</div>
+                            {% elif column.is_nullable == 'NO' %}
+                                <div class="form-text">Required field</div>
+                            {% else %}
+                                <div class="form-text">Optional field</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-circle"></i> Update Record
+                                    </button>
+                                    <button type="button" class="btn btn-secondary ms-2" onclick="resetForm()">
+                                        <i class="bi bi-arrow-clockwise"></i> Reset
+                                    </button>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('view_table', table_name=table_name) }}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-x-circle"></i> Cancel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Field Information Card -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle"></i> Field Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Data Type</th>
+                                <th>Nullable</th>
+                                <th>Default</th>
+                                <th>Max Length</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for column in columns %}
+                            <tr>
+                                <td><code>{{ column.column_name }}</code></td>
+                                <td><span class="badge bg-secondary">{{ column.data_type }}</span></td>
+                                <td>
+                                    {% if column.is_nullable == 'YES' %}
+                                        <i class="bi bi-check text-success"></i>
+                                    {% else %}
+                                        <i class="bi bi-x text-danger"></i>
+                                    {% endif %}
+                                </td>
+                                <td><small class="text-muted">{{ column.column_default or 'None' }}</small></td>
+                                <td><small class="text-muted">{{ column.character_maximum_length or 'N/A' }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Form validation
+    $('#edit-form').on('submit', function(e) {
+        let isValid = true;
+        
+        // Check required fields
+        $(this).find('input[required], select[required], textarea[required]').each(function() {
+            if (!$(this).val()) {
+                $(this).addClass('is-invalid');
+                isValid = false;
+            } else {
+                $(this).removeClass('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields');
+        }
+    });
+});
+
+function resetForm() {
+    if (confirm('Are you sure you want to reset all changes?')) {
+        document.getElementById('edit-form').reset();
+        // Remove validation classes
+        $('.is-invalid').removeClass('is-invalid');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Create Record - {{ table_name|title }} - PostgreSQL Takeoff Database{% endblock %}
+{% block page_title %}Create New Record in {{ table_name|title }}{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('view_table', table_name=table_name) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Table
+    </a>
+    <a href="{{ url_for('bulk_import', table_name=table_name) }}" class="btn btn-outline-primary">
+        <i class="bi bi-cloud-upload"></i> Bulk Import
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle"></i> Create New Record
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="create-form">
+                    <div class="row">
+                        {% for column in columns %}
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ column.column_name }}" class="form-label">
+                                <strong>{{ column.column_name }}</strong>
+                                <small class="text-muted">({{ column.data_type }})</small>
+                                {% if column.is_nullable == 'NO' %}
+                                    <span class="text-danger">*</span>
+                                {% endif %}
+                            </label>
+                            
+                            {% set is_id_column = loop.first %}
+                            {% set is_required = column.is_nullable == 'NO' and not column.column_default %}
+                            
+                            {% if column.data_type == 'boolean' %}
+                                <select name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                        class="form-select" {{ 'required' if is_required else '' }}>
+                                    <option value="">Select...</option>
+                                    <option value="true">True</option>
+                                    <option value="false">False</option>
+                                </select>
+                            {% elif column.data_type in ['text', 'character varying'] and column.character_maximum_length and column.character_maximum_length > 100 %}
+                                <textarea name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                          class="form-control" rows="3" 
+                                          {{ 'required' if is_required else '' }}
+                                          {% if column.character_maximum_length %}maxlength="{{ column.character_maximum_length }}"{% endif %}
+                                          placeholder="Enter {{ column.column_name }}"></textarea>
+                            {% elif column.data_type in ['integer', 'bigint'] %}
+                                <input type="number" name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                       class="form-control" {{ 'required' if is_required else '' }}
+                                       placeholder="Enter {{ column.column_name }}">
+                            {% elif column.data_type in ['numeric', 'decimal'] %}
+                                <input type="number" step="0.01" name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                       class="form-control" {{ 'required' if is_required else '' }}
+                                       placeholder="Enter {{ column.column_name }}">
+                            {% elif column.data_type in ['date'] %}
+                                <input type="date" name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                       class="form-control" {{ 'required' if is_required else '' }}>
+                            {% elif column.data_type in ['timestamp', 'timestamp without time zone'] %}
+                                <input type="datetime-local" name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                       class="form-control" {{ 'required' if is_required else '' }}>
+                            {% else %}
+                                <input type="text" name="{{ column.column_name }}" id="{{ column.column_name }}" 
+                                       class="form-control" {{ 'required' if is_required else '' }}
+                                       {% if column.character_maximum_length %}maxlength="{{ column.character_maximum_length }}"{% endif %}
+                                       placeholder="Enter {{ column.column_name }}">
+                            {% endif %}
+                            
+                            {% if column.column_default %}
+                                <div class="form-text">Default: {{ column.column_default }}</div>
+                            {% elif is_required %}
+                                <div class="form-text">Required field</div>
+                            {% else %}
+                                <div class="form-text">Optional field</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="bi bi-check-circle"></i> Create Record
+                                    </button>
+                                    <button type="reset" class="btn btn-secondary ms-2">
+                                        <i class="bi bi-arrow-clockwise"></i> Clear Form
+                                    </button>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('view_table', table_name=table_name) }}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-x-circle"></i> Cancel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Form validation
+    $('#create-form').on('submit', function(e) {
+        let isValid = true;
+        
+        // Check required fields
+        $(this).find('input[required], select[required], textarea[required]').each(function() {
+            if (!$(this).val()) {
+                $(this).addClass('is-invalid');
+                isValid = false;
+            } else {
+                $(this).removeClass('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields');
+        }
+    });
+    
+    // Real-time validation
+    $('input[required], select[required], textarea[required]').on('input change', function() {
+        if ($(this).val()) {
+            $(this).removeClass('is-invalid');
+        }
+    });
+});
+</script>
+{% endblock %}

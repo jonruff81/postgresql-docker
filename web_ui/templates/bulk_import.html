@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Import - {{ table_name|title }} - PostgreSQL Takeoff Database{% endblock %}
+{% block page_title %}Bulk Import Records to {{ table_name|title }}{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('view_table', table_name=table_name) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Table
+    </a>
+    <a href="{{ url_for('create_record', table_name=table_name) }}" class="btn btn-outline-success">
+        <i class="bi bi-plus-circle"></i> Create Single Record
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-cloud-upload"></i> Upload CSV File
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" id="import-form">
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">
+                            <strong>Select CSV File</strong>
+                        </label>
+                        <input type="file" name="csv_file" id="csv_file" 
+                               class="form-control" accept=".csv" required>
+                        <div class="form-text">
+                            File must be in CSV format (.csv) with headers matching the table columns below.
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle"></i> CSV Format Requirements:</h6>
+                        <ul class="mb-0">
+                            <li>First row must contain column headers exactly matching table column names</li>
+                            <li>Column order doesn't matter</li>
+                            <li>Missing columns will be set to NULL (if nullable) or default values</li>
+                            <li>Empty cells will be treated as NULL values</li>
+                            <li>Date format: YYYY-MM-DD</li>
+                            <li>Timestamp format: YYYY-MM-DD HH:MM:SS</li>
+                            <li>Boolean values: true/false, 1/0, or yes/no</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> Import Records
+                        </button>
+                        <a href="{{ url_for('view_table', table_name=table_name) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- CSV Template Download -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-download"></i> CSV Template
+                </h6>
+            </div>
+            <div class="card-body">
+                <p>Download a CSV template with the correct column headers:</p>
+                <button type="button" class="btn btn-outline-info" onclick="downloadTemplate()">
+                    <i class="bi bi-file-earmark-arrow-down"></i> Download CSV Template
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-table"></i> Table Structure
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Column</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for column in columns %}
+                            <tr>
+                                <td>
+                                    <code class="text-primary">{{ column.column_name }}</code>
+                                    {% if loop.first %}
+                                        <small class="text-muted d-block">Primary Key</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary small">{{ column.data_type }}</span>
+                                    {% if column.character_maximum_length %}
+                                        <small class="text-muted d-block">Max: {{ column.character_maximum_length }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if column.is_nullable == 'NO' and not column.column_default %}
+                                        <i class="bi bi-exclamation-circle text-danger" title="Required"></i>
+                                    {% elif column.column_default %}
+                                        <i class="bi bi-gear text-info" title="Has default value"></i>
+                                    {% else %}
+                                        <i class="bi bi-dash text-muted" title="Optional"></i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <strong>Legend:</strong><br>
+                        <i class="bi bi-exclamation-circle text-danger"></i> Required field<br>
+                        <i class="bi bi-gear text-info"></i> Has default value<br>
+                        <i class="bi bi-dash text-muted"></i> Optional field
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Example CSV -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-file-text"></i> Example CSV Format
+                </h6>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-2 small rounded" id="csv-example">
+{{ columns[0].column_name }},{{ columns[1].column_name if columns|length > 1 }}{% if columns|length > 2 %},{{ columns[2].column_name }}{% endif %}
+1,Example Value{% if columns|length > 2 %},Another Value{% endif %}
+2,Second Example{% if columns|length > 2 %},More Data{% endif %}
+                </pre>
+                <small class="text-muted">
+                    This is a simplified example. Include all relevant columns from the table structure above.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // File validation
+    $('#csv_file').on('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const fileName = file.name.toLowerCase();
+            if (!fileName.endsWith('.csv')) {
+                alert('Please select a CSV file (.csv)');
+                this.value = '';
+                return;
+            }
+            
+            // Check file size (limit to 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File size must be less than 10MB');
+                this.value = '';
+                return;
+            }
+        }
+    });
+    
+    // Form submission with loading state
+    $('#import-form').on('submit', function(e) {
+        const submitBtn = $(this).find('button[type="submit"]');
+        submitBtn.prop('disabled', true);
+        submitBtn.html('<i class="bi bi-hourglass-split"></i> Importing...');
+        
+        // Re-enable button after 30 seconds (fallback)
+        setTimeout(function() {
+            submitBtn.prop('disabled', false);
+            submitBtn.html('<i class="bi bi-upload"></i> Import Records');
+        }, 30000);
+    });
+});
+
+function downloadTemplate() {
+    // Get column names from the table structure
+    const columns = [];
+    document.querySelectorAll('.table tbody tr td:first-child code').forEach(function(el) {
+        columns.push(el.textContent);
+    });
+    
+    const csvContent = columns.join(',') + '\n';
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', '{{ table_name }}_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}

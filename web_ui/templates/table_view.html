@@ -8,6 +8,17 @@
     <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left"></i> Back to Dashboard
     </a>
+    {% if table_name == 'takeoffs' %}
+    <a href="{{ url_for('enhanced_takeoffs') }}" class="btn btn-outline-primary">
+        <i class="bi bi-graph-up"></i> Enhanced View
+    </a>
+    {% endif %}
+    <a href="{{ url_for('create_record', table_name=table_name) }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Create Record
+    </a>
+    <a href="{{ url_for('bulk_import', table_name=table_name) }}" class="btn btn-outline-primary">
+        <i class="bi bi-cloud-upload"></i> Bulk Import
+    </a>
     <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
         <i class="bi bi-arrow-clockwise"></i> Refresh
     </button>
@@ -109,12 +120,12 @@
         <div class="card">
             <div class="card-body p-0">
                 {% if records %}
-                <div class="table-responsive">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
                     <table class="table table-hover table-striped mb-0" id="data-table">
-                        <thead class="table-dark">
+                        <thead class="table-dark sticky-top">
                             <tr>
-                                {% for column in columns %}
-                                <th scope="col" class="text-nowrap">
+                                {% for column in columns[:8] %}
+                                <th scope="col" class="text-nowrap" style="min-width: 120px;">
                                     {{ column.column_name }}
                                     {% if column.data_type in ['integer', 'bigint', 'numeric', 'decimal'] %}
                                         <i class="bi bi-hash text-muted"></i>
@@ -127,14 +138,19 @@
                                     {% endif %}
                                 </th>
                                 {% endfor %}
-                                <th scope="col" class="text-center">Actions</th>
+                                {% if columns|length > 8 %}
+                                <th scope="col" class="text-muted" style="min-width: 80px;">
+                                    <small>+{{ columns|length - 8 }} more</small>
+                                </th>
+                                {% endif %}
+                                <th scope="col" class="text-center sticky-end" style="min-width: 140px; background-color: #212529;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for record in records %}
                             <tr>
-                                {% for column in columns %}
-                                <td class="text-nowrap">
+                                {% for column in columns[:8] %}
+                                <td class="text-nowrap" style="min-width: 120px;">
                                     {% set value = record[column.column_name] %}
                                     {% if value is none %}
                                         <span class="text-muted fst-italic">NULL</span>
@@ -151,21 +167,34 @@
                                     {% elif column.data_type in ['integer', 'bigint'] and value %}
                                         <span class="text-end">{{ "{:,}".format(value) }}</span>
                                     {% else %}
-                                        {% if value|string|length > 50 %}
-                                            <span title="{{ value }}">{{ value|string|truncate(47) }}</span>
+                                        {% if value|string|length > 30 %}
+                                            <span title="{{ value }}">{{ value|string|truncate(27) }}</span>
                                         {% else %}
                                             {{ value }}
                                         {% endif %}
                                     {% endif %}
                                 </td>
                                 {% endfor %}
-                                <td class="text-center">
+                                {% if columns|length > 8 %}
+                                <td class="text-muted" style="min-width: 80px;">
+                                    <button type="button" class="btn btn-outline-info btn-sm" 
+                                            onclick="showAllColumns('{{ record[columns[0].column_name] }}')" 
+                                            title="View all columns">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                </td>
+                                {% endif %}
+                                <td class="text-center" style="min-width: 140px;">
                                     <div class="btn-group btn-group-sm" role="group">
                                         <a href="{{ url_for('view_record', table_name=table_name, record_id=record[columns[0].column_name]) }}" 
-                                           class="btn btn-outline-primary" title="View Details">
+                                           class="btn btn-outline-primary btn-sm" title="View Details">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <button type="button" class="btn btn-outline-danger" 
+                                        <a href="{{ url_for('edit_record', table_name=table_name, record_id=record[columns[0].column_name]) }}" 
+                                           class="btn btn-outline-warning btn-sm" title="Edit Record">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" 
                                                 onclick="deleteRecord('{{ record[columns[0].column_name] }}')" 
                                                 title="Delete Record">
                                             <i class="bi bi-trash"></i>
@@ -243,7 +272,7 @@
                 
                 <!-- Next Page -->
                 <li class="page-item {{ 'disabled' if current_page >= total_pages else '' }}">
-                    <a class="page-link" href="{{ url_for('view_table', table_name=table_name, page=current_page+1, search=search) if current_page < total_pages else '#' }}">
+                    <a href="{{ url_for('view_table', table_name=table_name, page=current_page+1, search=search) if current_page < total_pages else '#' }}">
                         Next <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
@@ -279,7 +308,7 @@ function toggleColumnInfo() {
 }
 
 function deleteRecord(recordId) {
-    if (confirmDelete(`Are you sure you want to delete record ${recordId}?`)) {
+    if (confirm(`Are you sure you want to delete record ${recordId}?`)) {
         // Create a form and submit it
         const form = document.createElement('form');
         form.method = 'POST';
