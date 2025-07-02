@@ -87,10 +87,17 @@
                             {% for table in tables %}
                             <tr class="table-row" data-table-name="{{ table.name }}">
                                 <td>
-                                    <a href="{{ url_for('view_table', table_name=table.name) }}" class="text-decoration-none">
-                                        <i class="bi bi-table text-primary"></i>
-                                        <strong>{{ table.name }}</strong>
-                                    </a>
+                                    {% if table.name in ['cost_codes', 'cost_groups'] %}
+                                        <a href="/cost-codes-grid" class="text-decoration-none">
+                                            <i class="bi bi-grid-3x3 text-success"></i>
+                                            <strong>{{ table.name }}</strong>
+                                            <span class="badge bg-success ms-2">AG-Grid Available</span>
+                                        </a>
+                                    {% else %}
+                                        <i class="bi bi-table text-muted"></i>
+                                        <strong class="text-muted">{{ table.name }}</strong>
+                                        <span class="badge bg-warning ms-2">AG-Grid Coming Soon</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <span class="text-muted">{{ table.comment }}</span>
@@ -103,10 +110,15 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ url_for('view_table', table_name=table.name) }}" 
-                                           class="btn btn-outline-primary" title="View Data">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
+                                        {% if table.name in ['cost_codes', 'cost_groups'] %}
+                                            <a href="/cost-codes-grid" class="btn btn-success" title="Open AG-Grid">
+                                                <i class="bi bi-grid-3x3"></i> Grid
+                                            </a>
+                                        {% else %}
+                                            <button type="button" class="btn btn-outline-secondary" disabled title="AG-Grid Coming Soon">
+                                                <i class="bi bi-hourglass-split"></i> Coming Soon
+                                            </button>
+                                        {% endif %}
                                         <button type="button" class="btn btn-outline-info" 
                                                 onclick="showTableInfo('{{ table.name }}')" title="Table Info">
                                             <i class="bi bi-info-circle"></i>
