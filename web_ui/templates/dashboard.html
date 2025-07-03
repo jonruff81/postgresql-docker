@@ -5,9 +5,6 @@
 
 {% block page_actions %}
 <div class="btn-group" role="group">
-    <a href="/cost-codes-grid" class="btn btn-warning me-2">
-        <i class="bi bi-grid-3x3"></i> Cost Codes Grid
-    </a>
     <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
         <i class="bi bi-arrow-clockwise"></i> Refresh
     </button>
@@ -15,6 +12,7 @@
 {% endblock %}
 
 {% block content %}
+<!-- System Status -->
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="card">
@@ -32,16 +30,16 @@
                     </div>
                     <div class="col-md-3">
                         <div class="text-center p-3 border rounded">
-                            <i class="bi bi-table text-primary" style="font-size: 2rem;"></i>
-                            <h6 class="mt-2">Tables</h6>
-                            <strong>{{ tables|length }}</strong>
+                            <i class="bi bi-grid-3x3 text-primary" style="font-size: 2rem;"></i>
+                            <h6 class="mt-2">AG-Grid Views</h6>
+                            <strong>4</strong>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="text-center p-3 border rounded">
-                            <i class="bi bi-file-earmark-text text-info" style="font-size: 2rem;"></i>
-                            <h6 class="mt-2">Total Records</h6>
-                            <strong id="total-records">{{ tables|sum(attribute='record_count') }}</strong>
+                            <i class="bi bi-tools text-info" style="font-size: 2rem;"></i>
+                            <h6 class="mt-2">Features</h6>
+                            <small class="text-muted">Cost Management</small>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -57,163 +55,217 @@
     </div>
 </div>
 
-<div class="row">
+<!-- AG-Grid Views - Button Layout -->
+<div class="row mb-5">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="bi bi-table"></i> Database Tables
+                    <i class="bi bi-grid-3x3"></i> AG-Grid Data Views (Button Layout)
                 </h5>
-                <div class="input-group" style="width: 300px;">
-                    <span class="input-group-text">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" class="form-control" id="table-search" placeholder="Search tables...">
-                </div>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="tables-grid">
-                        <thead class="table-light">
-                            <tr>
-                                <th scope="col">Table Name</th>
-                                <th scope="col">Description</th>
-                                <th scope="col" class="text-center">Columns</th>
-                                <th scope="col" class="text-center">Records</th>
-                                <th scope="col" class="text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for table in tables %}
-                            <tr class="table-row" data-table-name="{{ table.name }}">
-                                <td>
-                                    {% if table.name in ['cost_codes', 'cost_groups'] %}
-                                        <a href="/cost-codes-grid" class="text-decoration-none">
-                                            <i class="bi bi-grid-3x3 text-success"></i>
-                                            <strong>{{ table.name }}</strong>
-                                            <span class="badge bg-success ms-2">AG-Grid Available</span>
-                                        </a>
-                                    {% else %}
-                                        <i class="bi bi-table text-muted"></i>
-                                        <strong class="text-muted">{{ table.name }}</strong>
-                                        <span class="badge bg-warning ms-2">AG-Grid Coming Soon</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="text-muted">{{ table.comment }}</span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-info">{{ table.column_count }}</span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-success">{{ "{:,}".format(table.record_count) }}</span>
-                                </td>
-                                <td class="text-center">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        {% if table.name in ['cost_codes', 'cost_groups'] %}
-                                            <a href="/cost-codes-grid" class="btn btn-success" title="Open AG-Grid">
-                                                <i class="bi bi-grid-3x3"></i> Grid
-                                            </a>
-                                        {% else %}
-                                            <button type="button" class="btn btn-outline-secondary" disabled title="AG-Grid Coming Soon">
-                                                <i class="bi bi-hourglass-split"></i> Coming Soon
-                                            </button>
-                                        {% endif %}
-                                        <button type="button" class="btn btn-outline-info" 
-                                                onclick="showTableInfo('{{ table.name }}')" title="Table Info">
-                                            <i class="bi bi-info-circle"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <!-- Cost Codes Grid Button -->
+                    <a href="/cost-codes-grid" class="btn btn-lg btn-success d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-calculator me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Cost Codes Grid</strong>
+                                <br>
+                                <small class="opacity-75">Manage cost codes and groups with full editing capabilities</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Vendor Pricing Grid Button -->
+                    <a href="/vendor-pricing-grid" class="btn btn-lg btn-primary d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-currency-dollar me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Vendor Pricing Grid</strong>
+                                <br>
+                                <small class="opacity-75">View and analyze current vendor pricing with cost codes</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Quotes Grid Button -->
+                    <a href="/quotes-grid" class="btn btn-lg btn-warning d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-file-earmark-text me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Quotes Management Grid</strong>
+                                <br>
+                                <small class="opacity-75">Manage vendor quotes with pricing, plan options, and file uploads</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Comprehensive Takeoff Analysis Grid Button -->
+                    <a href="/comprehensive-takeoff-grid" class="btn btn-lg btn-info d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-chart-line me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Comprehensive Takeoff Analysis</strong>
+                                <br>
+                                <small class="opacity-75">Complete takeoff analysis with plan options, cost codes, quantities, pricing, and vendor information</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Placeholder for future AG-Grid views -->
+                    <!--
+                    
+                    <a href="/takeoffs-grid" class="btn btn-lg btn-info d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-file-earmark-text me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Takeoffs Grid</strong>
+                                <br>
+                                <small class="opacity-75">View and manage construction takeoff data</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    -->
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Table Info Modal -->
-<div class="modal fade" id="tableInfoModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="bi bi-info-circle"></i> Table Information
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="table-info-content">
-                <!-- Content will be loaded here -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Key Metrics Cards -->
-<div class="row mt-4">
+<!-- AG-Grid Views - Card Layout -->
+<div class="row">
     <div class="col-md-12">
         <h5 class="mb-3">
-            <i class="bi bi-graph-up"></i> Key Metrics
+            <i class="bi bi-grid-3x3"></i> AG-Grid Data Views (Card Layout)
         </h5>
     </div>
     
+    <!-- Cost Codes Grid Card -->
     <div class="col-md-4 mb-3">
-        <div class="card border-primary">
+        <div class="card h-100 border-success shadow-sm">
             <div class="card-body text-center">
-                <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">Vendors</h6>
-                <h4 class="text-primary">
-                    {% for table in tables %}
-                        {% if table.name == 'vendors' %}
-                            {{ table.record_count }}
-                        {% endif %}
-                    {% endfor %}
-                </h4>
-                <small class="text-muted">Active vendor relationships</small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4 mb-3">
-        <div class="card border-success">
-            <div class="card-body text-center">
-                <i class="bi bi-currency-dollar text-success" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">Pricing Records</h6>
-                <h4 class="text-success">
-                    {% for table in tables %}
-                        {% if table.name == 'vendor_pricing' %}
-                            {{ table.record_count }}
-                        {% endif %}
-                    {% endfor %}
-                </h4>
-                <small class="text-muted">Current pricing catalog</small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4 mb-3">
-        <div class="card border-info">
-            <div class="card-body text-center">
-                <i class="bi bi-calculator text-info" style="font-size: 2rem;"></i>
-                <h6 class="card-title mt-2">Takeoff Records</h6>
-                <h4 class="text-info">
-                    {% for table in tables %}
-                        {% if table.name == 'takeoffs' %}
-                            {{ "{:,}".format(table.record_count) }}
-                        {% endif %}
-                    {% endfor %}
-                </h4>
-                <small class="text-muted">Construction takeoff items</small>
-                <div class="mt-3">
-                    <a href="/cost-codes-grid" class="btn btn-warning btn-sm">
-                        <i class="bi bi-grid-3x3"></i> Cost Codes Grid
+                <i class="bi bi-calculator text-success mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title">Cost Codes Grid</h5>
+                <p class="card-text text-muted">
+                    Comprehensive cost code management with integrated cost groups. 
+                    Edit, add, and organize your project cost structure.
+                </p>
+                <div class="mt-auto">
+                    <a href="/cost-codes-grid" class="btn btn-success">
+                        <i class="bi bi-grid-3x3"></i> Open Grid
                     </a>
+                </div>
+            </div>
+            <div class="card-footer bg-success bg-opacity-10">
+                <small class="text-success">
+                    <i class="bi bi-check-circle"></i> Available Now
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vendor Pricing Grid Card -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-primary shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-currency-dollar text-primary mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title">Vendor Pricing Grid</h5>
+                <p class="card-text text-muted">
+                    View and analyze current vendor pricing with cost codes. 
+                    Comprehensive pricing data with advanced filtering and export capabilities.
+                </p>
+                <div class="mt-auto">
+                    <a href="/vendor-pricing-grid" class="btn btn-primary">
+                        <i class="bi bi-grid-3x3"></i> Open Grid
+                    </a>
+                </div>
+            </div>
+            <div class="card-footer bg-primary bg-opacity-10">
+                <small class="text-primary">
+                    <i class="bi bi-check-circle"></i> Available Now
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Placeholder cards for future AG-Grid views -->
+    <!--
+    
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-info shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text text-info mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title">Takeoffs Grid</h5>
+                <p class="card-text text-muted">
+                    View and manage construction takeoff data with advanced 
+                    filtering and bulk editing capabilities.
+                </p>
+                <div class="mt-auto">
+                    <a href="/takeoffs-grid" class="btn btn-info">
+                        <i class="bi bi-grid-3x3"></i> Open Grid
+                    </a>
+                </div>
+            </div>
+            <div class="card-footer bg-info bg-opacity-10">
+                <small class="text-info">
+                    <i class="bi bi-check-circle"></i> Available Now
+                </small>
+            </div>
+        </div>
+    </div>
+    -->
+    
+    <!-- Coming Soon placeholder cards -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-secondary shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text text-secondary mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title text-muted">Takeoffs Grid</h5>
+                <p class="card-text text-muted">
+                    Coming soon - Comprehensive takeoff data management 
+                    with advanced analytics and reporting.
+                </p>
+                <div class="mt-auto">
+                    <button class="btn btn-outline-secondary" disabled>
+                        <i class="bi bi-hourglass-split"></i> Coming Soon
+                    </button>
+                </div>
+            </div>
+            <div class="card-footer bg-secondary bg-opacity-10">
+                <small class="text-secondary">
+                    <i class="bi bi-clock-history"></i> In Development
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Access Section -->
+<div class="row mt-5">
+    <div class="col-md-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-lightning-charge"></i> Quick Access
+                </h6>
+                <p class="card-text text-muted mb-3">
+                    Jump directly to your most-used data management tools.
+                </p>
+                <div class="btn-group" role="group">
+                    <a href="/cost-codes-grid" class="btn btn-warning">
+                        <i class="bi bi-calculator"></i> Cost Codes
+                    </a>
+                    <a href="/vendor-pricing-grid" class="btn btn-primary">
+                        <i class="bi bi-currency-dollar"></i> Vendor Pricing
+                    </a>
+                    <!-- Add more quick access buttons as new grids are created -->
                 </div>
             </div>
         </div>
@@ -223,63 +275,15 @@
 
 {% block scripts %}
 <script>
+// Add any dashboard-specific JavaScript here
 $(document).ready(function() {
-    // Initialize DataTable for better searching and sorting
-    $('#tables-grid').DataTable({
-        "pageLength": 25,
-        "order": [[ 0, "asc" ]],
-        "columnDefs": [
-            { "orderable": false, "targets": 4 } // Disable sorting on actions column
-        ]
-    });
+    console.log('Dashboard loaded successfully');
     
-    // Custom search functionality
-    $('#table-search').on('keyup', function() {
-        $('#tables-grid').DataTable().search(this.value).draw();
+    // Optional: Add click tracking or other analytics
+    $('.btn[href]').on('click', function() {
+        const gridName = $(this).text().trim();
+        console.log(`Navigating to: ${gridName}`);
     });
 });
-
-function showTableInfo(tableName) {
-    // Load table structure information
-    $.get(`/api/table/${tableName}/structure`, function(columns) {
-        let content = `
-            <h6><i class="bi bi-table"></i> ${tableName}</h6>
-            <div class="table-responsive">
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>Column</th>
-                            <th>Type</th>
-                            <th>Nullable</th>
-                            <th>Default</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        columns.forEach(function(col) {
-            content += `
-                <tr>
-                    <td><code>${col.column_name}</code></td>
-                    <td><span class="badge bg-secondary">${col.data_type}</span></td>
-                    <td>${col.is_nullable === 'YES' ? '<i class="bi bi-check text-success"></i>' : '<i class="bi bi-x text-danger"></i>'}</td>
-                    <td><small class="text-muted">${col.column_default || 'None'}</small></td>
-                </tr>
-            `;
-        });
-        
-        content += `
-                    </tbody>
-                </table>
-            </div>
-        `;
-        
-        $('#table-info-content').html(content);
-        $('#tableInfoModal').modal('show');
-    }).fail(function() {
-        $('#table-info-content').html('<div class="alert alert-danger">Error loading table information.</div>');
-        $('#tableInfoModal').modal('show');
-    });
-}
 </script>
 {% endblock %}

@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotes Management - AG Grid</title>
+    
+    <!-- AG Grid CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/styles/ag-theme-alpine.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        .ag-theme-alpine {
+            font-size: 14px;
+        }
+        .grid-container {
+            height: 600px;
+            width: 100%;
+        }
+        .header-section {
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            margin-bottom: 15px;
+        }
+        .status-message {
+            margin-top: 10px;
+        }
+        .file-drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 10px 0;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+        .file-drop-zone:hover {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+        }
+        .file-drop-zone.dragover {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <!-- Header Section -->
+        <div class="header-section">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2>💰 Quotes Management</h2>
+                    <p class="text-muted">Manage vendor quotes with pricing and plan options</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/" class="btn btn-outline-secondary">← Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-primary" onclick="saveChanges()">💾 Save Changes</button>
+                    <button type="button" class="btn btn-success" onclick="addNewRow()">➕ Add New Quote</button>
+                    <button type="button" class="btn btn-warning" onclick="refreshGrid()">🔄 Refresh</button>
+                    <button type="button" class="btn btn-info" onclick="exportToCsv()">📊 Export CSV</button>
+                </div>
+                <div class="btn-group ms-2" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">🧹 Clear Filters</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="fitColumns()">📏 Fit Columns</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="status-message"></div>
+
+        <!-- AG Grid Container -->
+        <div class="grid-container">
+            <div id="quotesGrid" class="ag-theme-alpine" style="height: 100%; width: 100%;"></div>
+        </div>
+
+        <!-- Grid Info -->
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <small class="text-muted">
+                    <span id="rowCount">0</span> records | 
+                    <span id="selectedCount">0</span> selected |
+                    <span id="filteredCount">0</span> filtered
+                </small>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">
+                    Double-click to edit | Right-click for context menu
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- AG Grid JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/dist/ag-grid-community.min.js"></script>
+    
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let gridApi;
+        let gridColumnApi;
+        let originalData = [];
+        let modifiedRows = [];
+        
+        // Dropdown data
+        let costCodes = [];
+        let items = [];
+        let planOptions = [];
+        let vendors = [];
+
+        // Custom cell editors
+        class DropdownCellEditor {
+            constructor() {}
+
+            init(params) {
+                this.params = params;
+                this.eInput = document.createElement('select');
+                this.eInput.className = 'form-select';
+                
+                // Add empty option
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.text = 'Select...';
+                this.eInput.appendChild(emptyOption);
+                
+                // Populate options based on field
+                let options = [];
+                switch(params.colDef.field) {
+                    case 'cost_code':
+                        options = costCodes.map(cc => ({value: cc.cost_code_id, text: `${cc.cost_code} - ${cc.cost_code_description}`}));
+                        break;
+                    case 'item_name':
+                        // Filter items by selected cost_code if available
+                        const selectedCostCodeId = params.data.cost_code_id;
+                        options = items
+                            .filter(item => !selectedCostCodeId || item.cost_code_id == selectedCostCodeId)
+                            .map(item => ({value: item.item_id, text: item.item_name}));
+                        break;
+                    case 'plan_option_display':
+                        options = planOptions.map(po => ({value: po.plan_option_id, text: po.display_name}));
+                        break;
+                    case 'vendor_name':
+                        options = vendors.map(v => ({value: v.vendor_id, text: v.vendor_name}));
+                        break;
+                }
+                
+                options.forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option.value;
+                    optionElement.text = option.text;
+                    this.eInput.appendChild(optionElement);
+                });
+                
+                // Set current value based on field type
+                let currentValue = '';
+                switch(params.colDef.field) {
+                    case 'cost_code':
+                        currentValue = params.data.cost_code_id || '';
+                        break;
+                    case 'item_name':
+                        currentValue = params.data.item_id || '';
+                        break;
+                    case 'plan_option_display':
+                        currentValue = params.data.plan_option_id || '';
+                        break;
+                    case 'vendor_name':
+                        currentValue = params.data.vendor_id || '';
+                        break;
+                }
+                
+                this.eInput.value = currentValue;
+                this.eInput.focus();
+            }
+
+            getGui() {
+                return this.eInput;
+            }
+
+            getValue() {
+                // Return the selected ID value
+                return this.eInput.value;
+            }
+
+            destroy() {}
+
+            isPopup() {
+                return false;
+            }
+        }
+
+        // Grid options
+        const gridOptions = {
+            // Column definitions
+            columnDefs: [
+                {
+                    headerName: "Cost Code",
+                    field: "cost_code",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    editable: true,
+                    pinned: 'left',
+                    width: 140,
+                    cellEditor: DropdownCellEditor,
+                    cellStyle: { fontWeight: 'bold', color: '#0066cc' },
+                    valueGetter: function(params) {
+                        if (params.data.cost_code) {
+                            return `${params.data.cost_code}`;
+                        }
+                        return '';
+                    }
+                },
+                {
+                    headerName: "Item Name",
+                    field: "item_name",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    editable: true,
+                    flex: 1,
+                    cellEditor: DropdownCellEditor,
+                    tooltipField: "item_name"
+                },
+                {
+                    headerName: "Item Description",
+                    field: "item_description",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    editable: false,
+                    flex: 1,
+                    tooltipField: "item_description",
+                    cellStyle: { backgroundColor: '#f8f9fa', fontStyle: 'italic' }
+                },
+                {
+                    headerName: "Plan Option",
+                    field: "plan_option_display",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    editable: true,
+                    width: 180,
+                    cellEditor: DropdownCellEditor,
+                    tooltipField: "plan_option_display"
+                },
+                {
+                    headerName: "Vendor",
+                    field: "vendor_name",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    editable: true,
+                    width: 140,
+                    cellEditor: DropdownCellEditor
+                },
+                {
+                    headerName: "Price",
+                    field: "price",
+                    sortable: true,
+                    filter: 'agNumberColumnFilter',
+                    editable: true,
+                    width: 120,
+                    cellEditor: 'agNumberCellEditor',
+                    valueFormatter: function(params) {
+                        if (params.value != null) {
+                            return '$' + Number(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        }
+                        return '';
+                    },
+                    cellStyle: { textAlign: 'right', fontWeight: 'bold' }
+                },
+                {
+                    headerName: "Notes",
+                    field: "notes",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    editable: true,
+                    flex: 1,
+                    cellEditor: 'agLargeTextCellEditor',
+                    cellEditorParams: {
+                        maxLength: 500,
+                        rows: 3,
+                        cols: 50
+                    }
+                },
+                {
+                    headerName: "Effective Date",
+                    field: "effective_date",
+                    sortable: true,
+                    filter: 'agDateColumnFilter',
+                    editable: true,
+                    width: 130,
+                    cellEditor: 'agDateCellEditor',
+                    valueFormatter: function(params) {
+                        if (params.value) {
+                            return new Date(params.value).toLocaleDateString();
+                        }
+                        return '';
+                    }
+                },
+                {
+                    headerName: "Expiration Date",
+                    field: "expiration_date",
+                    sortable: true,
+                    filter: 'agDateColumnFilter',
+                    editable: true,
+                    width: 130,
+                    cellEditor: 'agDateCellEditor',
+                    valueFormatter: function(params) {
+                        if (params.value) {
+                            return new Date(params.value).toLocaleDateString();
+                        }
+                        return '';
+                    }
+                },
+                {
+                    headerName: "Quote File",
+                    field: "quote_file",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    editable: true,
+                    width: 120,
+                    cellRenderer: function(params) {
+                        if (params.value) {
+                            return `<span title="${params.value}">📄 ${params.value.substring(0, 20)}${params.value.length > 20 ? '...' : ''}</span>`;
+                        }
+                        return '<span style="color: #999;">Drop file here</span>';
+                    }
+                }
+            ],
+
+            // Default column configuration
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true,
+                editable: false,
+                cellEditor: 'agTextCellEditor'
+            },
+
+            // Grid options
+            enableRangeSelection: true,
+            enableBrowserTooltips: false,
+            tooltipShowDelay: 500,
+            animateRows: true,
+            rowSelection: 'multiple',
+            suppressRowClickSelection: true,
+            enableCellTextSelection: true,
+            ensureDomOrder: true,
+            
+            // Pagination
+            pagination: true,
+            paginationPageSize: 50,
+            paginationAutoPageSize: false,
+
+            // Editing
+            stopEditingWhenCellsLoseFocus: true,
+            singleClickEdit: false,
+            
+            // Event handlers
+            onGridReady: onGridReady,
+            onCellValueChanged: onCellValueChanged,
+            onFilterChanged: onFilterChanged,
+            onSelectionChanged: onSelectionChanged,
+            
+            // Context menu
+            getContextMenuItems: getContextMenuItems,
+            
+            // Row styling
+            getRowStyle: function(params) {
+                if (modifiedRows.includes(params.node.id)) {
+                    return { backgroundColor: '#fff3cd' };
+                }
+                return null;
+            }
+        };
+
+        // Initialize grid when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const gridDiv = document.querySelector('#quotesGrid');
+            new agGrid.Grid(gridDiv, gridOptions);
+        });
+
+        // Load dropdown data
+        async function loadDropdownData() {
+            try {
+                // Load cost codes
+                const costCodesResponse = await fetch('/api/cost-codes');
+                costCodes = await costCodesResponse.json();
+                
+                // Load items
+                const itemsResponse = await fetch('/api/items');
+                items = await itemsResponse.json();
+                
+                // Load plan options
+                const planOptionsResponse = await fetch('/api/plan-options');
+                const planOptionsData = await planOptionsResponse.json();
+                planOptions = planOptionsData.map(po => ({
+                    plan_option_id: po.plan_option_id,
+                    display_name: `${po.plan_full_name}-${po.option_name}`
+                }));
+                
+                // Load vendors
+                const vendorsResponse = await fetch('/api/vendors');
+                vendors = await vendorsResponse.json();
+                
+            } catch (error) {
+                console.error('Error loading dropdown data:', error);
+                showStatus('Error loading dropdown data: ' + error.message, 'error');
+            }
+        }
+
+        // Load quotes data from server
+        async function loadData() {
+            try {
+                console.log('Starting data load...');
+                showStatus('Loading quotes...', 'info');
+                
+                const response = await fetch('/api/quotes');
+                console.log('Response received:', response.status, response.ok);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Data parsed successfully:', data.length, 'records');
+                
+                if (!gridApi) {
+                    console.error('GridAPI is not available!');
+                    showStatus('Grid not ready yet', 'error');
+                    return;
+                }
+                
+                originalData = data;
+                console.log('Setting row data...');
+                gridApi.setRowData(data);
+                console.log('Row data set, updating count...');
+                updateRowCount();
+                showStatus(`Loaded ${data.length} quotes successfully`, 'success');
+                console.log('Data loading complete');
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showStatus('Error loading data: ' + error.message, 'error');
+            }
+        }
+
+        // Grid ready event - load data here when grid is fully initialized
+        async function onGridReady(params) {
+            gridApi = params.api;
+            gridColumnApi = params.columnApi;
+            console.log('Grid ready, loading data...');
+            fitColumns();
+            
+            // Load dropdown data first, then quotes data
+            await loadDropdownData();
+            loadData();
+        }
+
+        // Cell value changed event
+        function onCellValueChanged(event) {
+            const rowId = event.node.id;
+            if (!modifiedRows.includes(rowId)) {
+                modifiedRows.push(rowId);
+            }
+            
+            // Handle dropdown changes and update related fields
+            const field = event.colDef.field;
+            const newValue = event.newValue;
+            const rowData = event.data;
+            
+            switch(field) {
+                case 'cost_code':
+                    // Update cost_code_id and related display values
+                    const selectedCostCode = costCodes.find(cc => cc.cost_code_id == newValue);
+                    if (selectedCostCode) {
+                        rowData.cost_code_id = selectedCostCode.cost_code_id;
+                        rowData.cost_code = selectedCostCode.cost_code;
+                        rowData.cost_code_description = selectedCostCode.cost_code_description;
+                    }
+                    break;
+                    
+                case 'item_name':
+                    // Update item_id and item_description
+                    const selectedItem = items.find(item => item.item_id == newValue);
+                    if (selectedItem) {
+                        rowData.item_id = selectedItem.item_id;
+                        rowData.item_name = selectedItem.item_name;
+                        // Get item description from products table via API or set a placeholder
+                        updateItemDescription(rowData, selectedItem.item_id);
+                    }
+                    break;
+                    
+                case 'plan_option_display':
+                    // Update plan_option_id
+                    const selectedPlanOption = planOptions.find(po => po.plan_option_id == newValue);
+                    if (selectedPlanOption) {
+                        rowData.plan_option_id = selectedPlanOption.plan_option_id;
+                        rowData.plan_option_display = selectedPlanOption.display_name;
+                    }
+                    break;
+                    
+                case 'vendor_name':
+                    // Update vendor_id
+                    const selectedVendor = vendors.find(v => v.vendor_id == newValue);
+                    if (selectedVendor) {
+                        rowData.vendor_id = selectedVendor.vendor_id;
+                        rowData.vendor_name = selectedVendor.vendor_name;
+                    }
+                    break;
+            }
+            
+            gridApi.refreshRows({ rowNodes: [event.node] });
+            showStatus('Row modified. Click "Save Changes" to update database.', 'warning');
+        }
+        
+        // Helper function to update item description
+        async function updateItemDescription(rowData, itemId) {
+            try {
+                const response = await fetch(`/api/items/${itemId}/description`);
+                if (response.ok) {
+                    const result = await response.json();
+                    rowData.item_description = result.description || '';
+                } else {
+                    // Fallback - set description based on item type
+                    rowData.item_description = 'Item description will be populated';
+                }
+            } catch (error) {
+                console.error('Error fetching item description:', error);
+                rowData.item_description = 'Description not available';
+            }
+        }
+
+        // Filter changed event
+        function onFilterChanged() {
+            updateRowCount();
+        }
+
+        // Selection changed event
+        function onSelectionChanged() {
+            updateRowCount();
+        }
+
+        // Context menu items
+        function getContextMenuItems(params) {
+            return [
+                {
+                    name: 'Edit Quote',
+                    action: function() {
+                        if (params.node) {
+                            startEditingRow(params.node);
+                        }
+                    },
+                    icon: '<i class="fa fa-edit"></i>'
+                },
+                'separator',
+                {
+                    name: 'Copy Cell',
+                    action: function() {
+                        if (params.value) {
+                            navigator.clipboard.writeText(params.value);
+                            showStatus('Copied to clipboard', 'success');
+                        }
+                    }
+                },
+                {
+                    name: 'Copy Row',
+                    action: function() {
+                        if (params.node) {
+                            const rowData = params.node.data;
+                            const text = Object.values(rowData).join('\t');
+                            navigator.clipboard.writeText(text);
+                            showStatus('Row copied to clipboard', 'success');
+                        }
+                    }
+                },
+                'separator',
+                'export'
+            ];
+        }
+
+        // Start editing a row
+        function startEditingRow(node) {
+            const colIds = gridColumnApi.getAllDisplayedColumns().map(col => col.getColId());
+            gridApi.startEditingCell({
+                rowIndex: node.rowIndex,
+                colKey: colIds[0]
+            });
+        }
+
+        // Save changes to server
+        async function saveChanges() {
+            if (modifiedRows.length === 0) {
+                showStatus('No changes to save', 'info');
+                return;
+            }
+
+            try {
+                showStatus('Saving changes...', 'info');
+                const updates = [];
+                
+                modifiedRows.forEach(rowId => {
+                    const node = gridApi.getRowNode(rowId);
+                    if (node) {
+                        updates.push(node.data);
+                    }
+                });
+
+                const response = await fetch('/api/quotes/bulk-update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ updates: updates })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    modifiedRows = [];
+                    gridApi.refreshRows();
+                    showStatus(`Successfully updated ${updates.length} quotes`, 'success');
+                } else {
+                    showStatus('Error saving changes: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving changes:', error);
+                showStatus('Error saving changes: ' + error.message, 'error');
+            }
+        }
+
+        // Add new row
+        function addNewRow() {
+            const newRow = {
+                quote_id: null,
+                cost_code_id: null,
+                cost_code: '',
+                item_id: null,
+                item_name: '',
+                item_description: '',
+                plan_option_id: null,
+                plan_option_display: '',
+                vendor_id: null,
+                vendor_name: '',
+                price: null,
+                notes: '',
+                effective_date: null,
+                expiration_date: null,
+                quote_file: ''
+            };
+            
+            gridApi.applyTransaction({ add: [newRow], addIndex: 0 });
+            
+            // Start editing the new row
+            setTimeout(() => {
+                const firstNode = gridApi.getDisplayedRowAtIndex(0);
+                if (firstNode) {
+                    startEditingRow(firstNode);
+                    modifiedRows.push(firstNode.id);
+                }
+            }, 100);
+            
+            showStatus('New quote added. Fill in the details and save.', 'info');
+        }
+
+        // Refresh grid
+        function refreshGrid() {
+            modifiedRows = [];
+            loadData();
+        }
+
+        // Export to CSV
+        function exportToCsv() {
+            gridApi.exportDataAsCsv({
+                fileName: 'quotes.csv',
+                columnSeparator: ',',
+                suppressQuotes: false
+            });
+            showStatus('Data exported to CSV', 'success');
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            gridApi.setFilterModel(null);
+            showStatus('Filters cleared', 'info');
+        }
+
+        // Fit columns to container
+        function fitColumns() {
+            gridApi.sizeColumnsToFit();
+        }
+
+        // Update row count display
+        function updateRowCount() {
+            const totalRows = gridApi.getDisplayedRowCount();
+            const selectedRows = gridApi.getSelectedRows().length;
+            const filteredRows = gridApi.getModel().getRowCount();
+            
+            document.getElementById('rowCount').textContent = totalRows;
+            document.getElementById('selectedCount').textContent = selectedRows;
+            document.getElementById('filteredCount').textContent = filteredRows;
+        }
+
+        // Show status message
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusMessage');
+            const alertClass = {
+                'success': 'alert-success',
+                'error': 'alert-danger',
+                'warning': 'alert-warning',
+                'info': 'alert-info'
+            }[type] || 'alert-info';
+            
+            statusDiv.innerHTML = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+            
+            // Auto-dismiss after 5 seconds for success/info messages
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    const alert = statusDiv.querySelector('.alert');
+                    if (alert) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        saveChanges();
+                        break;
+                    case 'n':
+                        e.preventDefault();
+                        addNewRow();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        refreshGrid();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

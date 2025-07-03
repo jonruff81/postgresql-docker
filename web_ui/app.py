@@ -296,9 +296,8 @@ db = DatabaseManager()
 
 @app.route('/')
 def dashboard():
-    """Main dashboard showing all tables"""
-    tables = db.get_all_tables()
-    return render_template('dashboard.html', tables=tables)
+    """Main dashboard showing AG-Grid views"""
+    return render_template('dashboard.html')
 
 # Old table view routes removed - will be replaced with AG-Grid implementations
 
@@ -321,6 +320,22 @@ def cost_codes_grid():
     """Cost codes with groups AG-Grid interface"""
     return render_template('cost_codes_grid.html')
 
+# Vendor Pricing endpoints
+@app.route('/vendor-pricing-grid')
+def vendor_pricing_grid():
+    """Vendor pricing AG-Grid interface"""
+    return render_template('vendor_pricing_grid.html')
+
+@app.route('/quotes-grid')
+def quotes_grid():
+    """Quotes management AG-Grid interface"""
+    return render_template('quotes_grid.html')
+
+@app.route('/comprehensive-takeoff-grid')
+def comprehensive_takeoff_grid():
+    """Comprehensive takeoff analysis AG-Grid interface"""
+    return render_template('comprehensive_takeoff_grid.html')
+
 @app.route('/api/cost-codes-with-groups')
 def api_cost_codes_with_groups():
     """API endpoint to get cost codes with groups data"""
@@ -336,6 +351,25 @@ def api_cost_codes_with_groups():
         return jsonify(data)
     except Exception as e:
         logger.error(f"Error getting cost codes with groups: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.disconnect()
+
+@app.route('/api/vendor-pricing')
+def api_vendor_pricing():
+    """API endpoint to get vendor pricing data"""
+    if not db.connect():
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    try:
+        db.cursor.execute("SELECT * FROM takeoff.v_current_vendor_pricing ORDER BY cost_code, vendor_name, item_name")
+        records = db.cursor.fetchall()
+        
+        # Convert to list of dictionaries for JSON serialization
+        data = [dict(record) for record in records]
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"Error getting vendor pricing data: {e}")
         return jsonify({'error': str(e)}), 500
     finally:
         db.disconnect()
@@ -446,6 +480,421 @@ def api_bulk_update_cost_codes():
         logger.error(f"Error in bulk update: {e}")
         db.conn.rollback()
         return jsonify({'success': False, 'message': f'Update failed: {str(e)}'}), 400
+    finally:
+        db.disconnect()
+
+# Quotes API endpoints
+@app.route('/api/quotes')
+def api_quotes():
+    """API endpoint to get quotes data"""
+    if not db.connect():
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    try:
+        db.cursor.execute("SELECT * FROM takeoff.v_quotes ORDER BY quote_id DESC")
+        records = db.cursor.fetchall()
+        
+        # Convert to list of dictionaries for JSON serialization
+        data = [dict(record) for record in records]
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"Error getting quotes data: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.disconnect()
+
+@app.route('/api/quotes/bulk-update', methods=['POST'])
+def api_bulk_update_quotes():
+    """API endpoint to bulk update quotes"""
+    data = request.get_json()
+    
+    if not data or 'updates' not in data:
+        return jsonify({'success': False, 'message': 'No updates provided'}), 400
+    
+    updates = data['updates']
+    if not isinstance(updates, list):
+        return jsonify({'success': False, 'message': 'Updates must be a list'}), 400
+    
+    if not db.connect():
+        return jsonify({'success': False, 'message': 'Database connection failed'}), 500
+    
+    try:
+        updated_count = 0
+        errors = []
+        
+        for update in updates:
+            try:
+                quote_id = update.get('quote_id')
+                
+                # Prepare update data
+                update_fields = {}
+                if 'cost_code_id' in update:
+                    update_fields['cost_code_id'] = update['cost_code_id'] if update['cost_code_id'] else None
+                if 'item_id' in update:
+                    update_fields['item_id'] = update['item_id'] if update['item_id'] else None
+                if 'plan_option_id' in update:
+                    update_fields['plan_option_id'] = update['plan_option_id'] if update['plan_option_id'] else None
+                if 'vendor_id' in update:
+                    update_fields['vendor_id'] = update['vendor_id'] if update['vendor_id'] else None
+                if 'price' in update:
+                    update_fields['price'] = update['price'] if update['price'] else None
+                if 'notes' in update:
+                    update_fields['notes'] = update['notes'] if update['notes'] else None
+                if 'effective_date' in update:
+                    update_fields['effective_date'] = update['effective_date'] if update['effective_date'] else None
+                if 'expiration_date' in update:
+                    update_fields['expiration_date'] = update['expiration_date'] if update['expiration_date'] else None
+                if 'quote_file' in update:
+                    update_fields['quote_file'] = update['quote_file'] if update['quote_file'] else None
+                
+                if quote_id:
+                    # Update existing quote
+                    if update_fields:
+                        set_clauses = [f"{field} = %s" for field in update_fields.keys()]
+                        values = list(update_fields.values())
+                        values.append(quote_id)
+                        
+                        query = f"UPDATE takeoff.quotes SET {', '.join(set_clauses)}, updated_date = CURRENT_TIMESTAMP WHERE quote_id = %s"
+                        db.cursor.execute(query, values)
+                else:
+                    # Insert new quote
+                    if update_fields:
+                        columns = list(update_fields.keys())
+                        values = list(update_fields.values())
+                        placeholders = ['%s'] * len(columns)
+                        
+                        query = f"INSERT INTO takeoff.quotes ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+                        db.cursor.execute(query, values)
+                
+                updated_count += 1
+                
+            except Exception as e:
+                errors.append(f"Error updating quote: {str(e)}")
+                continue
+        
+        db.conn.commit()
+        
+        if errors:
+            message = f"Updated {updated_count} quotes with {len(errors)} errors: {'; '.join(errors[:3])}"
+        else:
+            message = f"Successfully updated {updated_count} quotes"
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'updated_count': updated_count,
+            'errors': errors
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in quotes bulk update: {e}")
+        db.conn.rollback()
+        return jsonify({'success': False, 'message': f'Update failed: {str(e)}'}), 400
+    finally:
+        db.disconnect()
+
+# Dropdown data endpoints
+@app.route('/api/cost-codes')
+def api_cost_codes():
+    """API endpoint to get cost codes for dropdowns"""
+    if not db.connect():
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    try:
+        db.cursor.execute("SELECT cost_code_id, cost_code, cost_code_description FROM takeoff.cost_codes ORDER BY cost_code")
+        records = db.cursor.fetchall()
+        
+        data = [dict(record) for record in records]
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"Error getting cost codes: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.disconnect()
+
+@app.route('/api/items')
+def api_items():
+    """API endpoint to get items for dropdowns"""
+    if not db.connect():
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    try:
+        db.cursor.execute("SELECT item_id, item_name, cost_code_id FROM takeoff.items ORDER BY item_name")
+        records = db.cursor.fetchall()
+        
+        data = [dict(record) for record in records]
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"Error getting items: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.disconnect()
+
+@app.route('/api/plan-options')
+def api_plan_options():
+    """API endpoint to get plan options for dropdowns"""
+    if not db.connect():
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    try:
+        db.cursor.execute("""
+            SELECT po.plan_option_id, pe.plan_full_name, po.option_name
+            FROM takeoff.plan_options po
+            JOIN takeoff.plan_elevations pe ON po.plan_elevation_id = pe.plan_elevation_id
+            ORDER BY pe.plan_full_name, po.option_name
+        """)
+        records = db.cursor.fetchall()
+        
+        data = [dict(record) for record in records]
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"Error getting plan options: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.disconnect()
+
+@app.route('/api/vendors')
+def api_vendors():
+    """API endpoint to get vendors for dropdowns"""
+    if not db.connect():
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    try:
+        db.cursor.execute("SELECT vendor_id, vendor_name FROM takeoff.vendors ORDER BY vendor_name")
+        records = db.cursor.fetchall()
+        
+        data = [dict(record) for record in records]
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"Error getting vendors: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.disconnect()
+
+@app.route('/api/items/<int:item_id>/description')
+def api_item_description(item_id):
+    """API endpoint to get item description by item_id"""
+    if not db.connect():
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    try:
+        db.cursor.execute("""
+            SELECT 
+                i.item_name,
+                CASE 
+                    WHEN p.item_type = 'Product' THEN i.item_name
+                    WHEN p.item_type = 'Quote' THEN 'Quote for ' || i.item_name
+                    ELSE i.item_name
+                END as description
+            FROM takeoff.items i
+            LEFT JOIN takeoff.products p ON i.item_id = p.item_id
+            WHERE i.item_id = %s
+        """, (item_id,))
+        
+        record = db.cursor.fetchone()
+        if record:
+            return jsonify({'description': record['description']})
+        else:
+            return jsonify({'description': 'Item not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting item description: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        db.disconnect()
+
+@app.route('/api/comprehensive-takeoff-analysis/duplicate', methods=['POST'])
+def api_comprehensive_takeoff_analysis_duplicate():
+    """
+    API endpoint to duplicate (insert) a row into the comprehensive takeoff analysis.
+    Expects JSON with all required fields for a new row.
+    Inserts into takeoff.takeoffs, creating or finding referenced products, jobs, and vendors as needed.
+    """
+    data = request.get_json()
+    required_fields = [
+        'plan_full_name', 'option_name', 'cost_code', 'item_name', 'item_description',
+        'quantity_source', 'quantity', 'unit_price', 'price_factor', 'unit_of_measure',
+        'vendor_name', 'notes', 'job_name', 'job_number', 'customer_name', 'room', 'spec_name'
+    ]
+    if not all(field in data for field in required_fields):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+
+    if not db.connect():
+        return jsonify({'success': False, 'message': 'Database connection failed'}), 500
+
+    try:
+        # 1. Find or create cost_code
+        db.cursor.execute("SELECT cost_code_id FROM takeoff.cost_codes WHERE cost_code = %s", (data['cost_code'],))
+        cost_code_row = db.cursor.fetchone()
+        if not cost_code_row:
+            return jsonify({'success': False, 'message': 'Cost code not found'}), 400
+        cost_code_id = cost_code_row['cost_code_id']
+
+        # 2. Find or create item
+        db.cursor.execute("SELECT item_id FROM takeoff.items WHERE item_name = %s", (data['item_name'],))
+        item_row = db.cursor.fetchone()
+        if not item_row:
+            db.cursor.execute(
+                "INSERT INTO takeoff.items (item_name, cost_code_id) VALUES (%s, %s) RETURNING item_id",
+                (data['item_name'], cost_code_id)
+            )
+            item_id = db.cursor.fetchone()['item_id']
+        else:
+            item_id = item_row['item_id']
+
+        # 3. Find or create product
+        db.cursor.execute("SELECT product_id FROM takeoff.products WHERE item_id = %s", (item_id,))
+        product_row = db.cursor.fetchone()
+        if not product_row:
+            db.cursor.execute(
+                "INSERT INTO takeoff.products (item_id, product_description) VALUES (%s, %s) RETURNING product_id",
+                (item_id, data['item_description'])
+            )
+            product_id = db.cursor.fetchone()['product_id']
+        else:
+            product_id = product_row['product_id']
+
+        # 4. Find or create vendor
+        db.cursor.execute("SELECT vendor_id FROM takeoff.vendors WHERE vendor_name = %s", (data['vendor_name'],))
+        vendor_row = db.cursor.fetchone()
+        if not vendor_row:
+            db.cursor.execute(
+                "INSERT INTO takeoff.vendors (vendor_name) VALUES (%s) RETURNING vendor_id",
+                (data['vendor_name'],)
+            )
+            vendor_id = db.cursor.fetchone()['vendor_id']
+        else:
+            vendor_id = vendor_row['vendor_id']
+
+        # 5. Find or create plan_option (and plan_elevation, plan)
+        db.cursor.execute("SELECT plan_id FROM takeoff.plans WHERE plan_name = %s", (data['plan_full_name'],))
+        plan_row = db.cursor.fetchone()
+        if not plan_row:
+            db.cursor.execute(
+                "INSERT INTO takeoff.plans (plan_name) VALUES (%s) RETURNING plan_id",
+                (data['plan_full_name'],)
+            )
+            plan_id = db.cursor.fetchone()['plan_id']
+        else:
+            plan_id = plan_row['plan_id']
+
+        db.cursor.execute("SELECT plan_elevation_id FROM takeoff.plan_elevations WHERE plan_id = %s LIMIT 1", (plan_id,))
+        plan_elevation_row = db.cursor.fetchone()
+        if not plan_elevation_row:
+            db.cursor.execute(
+                "INSERT INTO takeoff.plan_elevations (plan_id, elevation_name, foundation) VALUES (%s, %s, %s) RETURNING plan_elevation_id",
+                (plan_id, 'Default', 'Default')
+            )
+            plan_elevation_id = db.cursor.fetchone()['plan_elevation_id']
+        else:
+            plan_elevation_id = plan_elevation_row['plan_elevation_id']
+
+        db.cursor.execute("SELECT plan_option_id FROM takeoff.plan_options WHERE plan_elevation_id = %s AND option_name = %s", (plan_elevation_id, data['option_name']))
+        plan_option_row = db.cursor.fetchone()
+        if not plan_option_row:
+            db.cursor.execute(
+                "INSERT INTO takeoff.plan_options (plan_elevation_id, option_name) VALUES (%s, %s) RETURNING plan_option_id",
+                (plan_elevation_id, data['option_name'])
+            )
+            plan_option_id = db.cursor.fetchone()['plan_option_id']
+        else:
+            plan_option_id = plan_option_row['plan_option_id']
+
+        # 6. Find or create job
+        db.cursor.execute("SELECT job_id FROM takeoff.jobs WHERE job_name = %s AND plan_option_id = %s", (data['job_name'], plan_option_id))
+        job_row = db.cursor.fetchone()
+        if not job_row:
+            db.cursor.execute(
+                "INSERT INTO takeoff.jobs (job_name, plan_option_id, is_template) VALUES (%s, %s, TRUE) RETURNING job_id",
+                (data['job_name'], plan_option_id)
+            )
+            job_id = db.cursor.fetchone()['job_id']
+        else:
+            job_id = job_row['job_id']
+
+        # 7. Generate new takeoff_id (ensure uniqueness)
+        db.cursor.execute("SELECT COALESCE(MAX(takeoff_id), 0) + 1 AS new_id FROM takeoff.takeoffs")
+        takeoff_id = db.cursor.fetchone()['new_id']
+
+        # 8. Insert into takeoffs, with error handling
+        try:
+            db.cursor.execute("""
+                INSERT INTO takeoff.takeoffs
+                (takeoff_id, job_id, product_id, vendor_id, quantity, unit_price, quantity_source, notes, room, spec_name)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                takeoff_id,
+                job_id,
+                product_id,
+                vendor_id,
+                data['quantity'],
+                data['unit_price'],
+                data['quantity_source'],
+                data.get('notes', ''),
+                data.get('room', ''),
+                data.get('spec_name', '')
+            ))
+        except Exception as insert_err:
+            logger.error(f"Error inserting into takeoffs: {insert_err}")
+            db.conn.rollback()
+            return jsonify({'success': False, 'message': f'Insert error: {insert_err}'}), 500
+
+        db.conn.commit()
+        return jsonify({'success': True, 'takeoff_id': takeoff_id})
+    except Exception as e:
+        logger.error(f"Error duplicating row: {e}")
+        db.conn.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        db.disconnect()
+
+@app.route('/api/comprehensive-takeoff-analysis/delete', methods=['POST'])
+def api_comprehensive_takeoff_analysis_delete():
+    """
+    API endpoint to delete a row from the comprehensive takeoff analysis.
+    Expects JSON with: takeoff_id.
+    """
+    data = request.get_json()
+    if 'takeoff_id' not in data:
+        return jsonify({'success': False, 'message': 'Missing takeoff_id'}), 400
+
+    if not db.connect():
+        return jsonify({'success': False, 'message': 'Database connection failed'}), 500
+
+    try:
+        db.cursor.execute("DELETE FROM takeoff.takeoffs WHERE takeoff_id = %s", (data['takeoff_id'],))
+        db.conn.commit()
+        if db.cursor.rowcount > 0:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'message': 'Row not found'}), 404
+    except Exception as e:
+        logger.error(f"Error deleting row: {e}")
+        db.conn.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        db.disconnect()
+
+@app.route('/api/comprehensive-takeoff-analysis')
+def api_comprehensive_takeoff_analysis():
+    """API endpoint to get comprehensive takeoff analysis data"""
+    if not db.connect():
+        return jsonify({'error': 'Database connection failed'}), 500
+    
+    try:
+        db.cursor.execute("SELECT * FROM takeoff.v_comprehensive_takeoff_analysis ORDER BY plan_full_name, option_name, cost_code, item_name")
+        records = db.cursor.fetchall()
+        
+        # Convert to list of dictionaries for JSON serialization and add a unique customRowId
+        data = []
+        for record in records:
+            row = dict(record)
+            # Build a unique, stable row ID from key fields
+            row['customRowId'] = f"{row.get('plan_full_name','')}|{row.get('option_name','')}|{row.get('cost_code','')}|{row.get('item_name','')}"
+            data.append(row)
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"Error getting comprehensive takeoff analysis data: {e}")
+        return jsonify({'error': str(e)}), 500
     finally:
         db.disconnect()
 

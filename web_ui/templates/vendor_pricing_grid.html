@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Pricing - AG Grid</title>
+    
+    <!-- AG Grid CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/styles/ag-theme-alpine.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        .ag-theme-alpine {
+            font-size: 14px;
+        }
+        .grid-container {
+            height: 600px;
+            width: 100%;
+        }
+        .header-section {
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            margin-bottom: 15px;
+        }
+        .status-message {
+            margin-top: 10px;
+        }
+        .price-cell {
+            text-align: right;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .cost-code-cell {
+            font-weight: bold;
+            color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <!-- Header Section -->
+        <div class="header-section">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2>💰 Vendor Pricing Grid</h2>
+                    <p class="text-muted">Current active vendor pricing with cost codes - View and analyze pricing data</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/" class="btn btn-outline-secondary">← Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-warning" onclick="refreshGrid()">🔄 Refresh</button>
+                    <button type="button" class="btn btn-info" onclick="exportToCsv()">📊 Export CSV</button>
+                    <button type="button" class="btn btn-success" onclick="exportToExcel()">📈 Export Excel</button>
+                </div>
+                <div class="btn-group ms-2" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">🧹 Clear Filters</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="fitColumns()">📏 Fit Columns</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="autoSizeColumns()">📐 Auto Size</button>
+                </div>
+                <div class="btn-group ms-2" role="group">
+                    <button type="button" class="btn btn-outline-info" onclick="showQuickStats()">📊 Quick Stats</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="status-message"></div>
+
+        <!-- AG Grid Container -->
+        <div class="grid-container">
+            <div id="vendorPricingGrid" class="ag-theme-alpine" style="height: 100%; width: 100%;"></div>
+        </div>
+
+        <!-- Grid Info -->
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <small class="text-muted">
+                    <span id="rowCount">0</span> records | 
+                    <span id="selectedCount">0</span> selected |
+                    <span id="filteredCount">0</span> filtered
+                </small>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">
+                    Right-click for context menu | Double-click to view details
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Modal -->
+    <div class="modal fade" id="quickStatsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">📊 Quick Statistics</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="quickStatsContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AG Grid JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/dist/ag-grid-community.min.js"></script>
+    
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let gridApi;
+        let gridColumnApi;
+        let allData = [];
+
+        // Grid options
+        const gridOptions = {
+            // Column definitions in the requested order
+            columnDefs: [
+                {
+                    headerName: "Cost Code",
+                    field: "cost_code",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    pinned: 'left',
+                    width: 120,
+                    cellClass: 'cost-code-cell',
+                    filterParams: {
+                        buttons: ['reset', 'apply'],
+                        closeOnApply: true
+                    }
+                },
+                {
+                    headerName: "Item Name",
+                    field: "item_name",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    flex: 2,
+                    tooltipField: "item_name",
+                    wrapText: true,
+                    autoHeight: true,
+                    filterParams: {
+                        buttons: ['reset', 'apply'],
+                        closeOnApply: true
+                    }
+                },
+                {
+                    headerName: "Product Description",
+                    field: "product_description",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    flex: 2,
+                    tooltipField: "product_description",
+                    wrapText: true,
+                    autoHeight: true,
+                    filterParams: {
+                        buttons: ['reset', 'apply'],
+                        closeOnApply: true
+                    }
+                },
+                {
+                    headerName: "Vendor",
+                    field: "vendor_name",
+                    sortable: true,
+                    filter: 'agSetColumnFilter',
+                    width: 150,
+                    filterParams: {
+                        buttons: ['reset', 'apply'],
+                        closeOnApply: true
+                    }
+                },
+                {
+                    headerName: "Price",
+                    field: "price",
+                    sortable: true,
+                    filter: 'agNumberColumnFilter',
+                    width: 120,
+                    cellClass: 'price-cell',
+                    valueFormatter: function(params) {
+                        if (params.value != null) {
+                            return '$' + Number(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4});
+                        }
+                        return '';
+                    },
+                    filterParams: {
+                        buttons: ['reset', 'apply'],
+                        closeOnApply: true
+                    }
+                },
+                {
+                    headerName: "Unit",
+                    field: "unit_of_measure",
+                    sortable: true,
+                    filter: 'agSetColumnFilter',
+                    width: 100,
+                    filterParams: {
+                        buttons: ['reset', 'apply'],
+                        closeOnApply: true
+                    }
+                },
+                {
+                    headerName: "Price Type",
+                    field: "price_type",
+                    sortable: true,
+                    filter: 'agSetColumnFilter',
+                    width: 120,
+                    cellStyle: function(params) {
+                        if (params.value === 'quote') {
+                            return { backgroundColor: '#fff3cd', color: '#856404' };
+                        } else if (params.value === 'standard') {
+                            return { backgroundColor: '#d1ecf1', color: '#0c5460' };
+                        }
+                        return null;
+                    },
+                    filterParams: {
+                        buttons: ['reset', 'apply'],
+                        closeOnApply: true
+                    }
+                },
+                {
+                    headerName: "Notes",
+                    field: "notes",
+                    sortable: true,
+                    filter: 'agTextColumnFilter',
+                    flex: 1,
+                    tooltipField: "notes",
+                    wrapText: true,
+                    autoHeight: true,
+                    filterParams: {
+                        buttons: ['reset', 'apply'],
+                        closeOnApply: true
+                    }
+                }
+            ],
+
+            // Default column configuration
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true,
+                editable: false,
+                enableRowGroup: true,
+                enablePivot: true,
+                enableValue: true
+            },
+
+            // Grid options
+            enableRangeSelection: true,
+            enableBrowserTooltips: false,
+            tooltipShowDelay: 500,
+            animateRows: true,
+            rowSelection: 'multiple',
+            suppressRowClickSelection: true,
+            enableCellTextSelection: true,
+            ensureDomOrder: true,
+            
+            // Pagination
+            pagination: true,
+            paginationPageSize: 100,
+            paginationAutoPageSize: false,
+
+            // Sidebar
+            sideBar: {
+                toolPanels: [
+                    {
+                        id: 'columns',
+                        labelDefault: 'Columns',
+                        labelKey: 'columns',
+                        iconKey: 'columns',
+                        toolPanel: 'agColumnsToolPanel',
+                        toolPanelParams: {
+                            suppressRowGroups: true,
+                            suppressValues: true,
+                            suppressPivots: true,
+                            suppressPivotMode: true,
+                            suppressSideButtons: true,
+                            suppressColumnFilter: false,
+                            suppressColumnSelectAll: false,
+                            suppressColumnExpandAll: false
+                        }
+                    },
+                    {
+                        id: 'filters',
+                        labelDefault: 'Filters',
+                        labelKey: 'filters',
+                        iconKey: 'filter',
+                        toolPanel: 'agFiltersToolPanel'
+                    }
+                ],
+                defaultToolPanel: 'filters'
+            },
+            
+            // Event handlers
+            onGridReady: onGridReady,
+            onFilterChanged: onFilterChanged,
+            onSelectionChanged: onSelectionChanged,
+            
+            // Context menu
+            getContextMenuItems: getContextMenuItems,
+            
+            // Status bar
+            statusBar: {
+                statusPanels: [
+                    { statusPanel: 'agTotalAndFilteredRowCountComponent' },
+                    { statusPanel: 'agSelectedRowCountComponent' },
+                    { statusPanel: 'agAggregationComponent' }
+                ]
+            }
+        };
+
+        // Initialize grid when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const gridDiv = document.querySelector('#vendorPricingGrid');
+            new agGrid.Grid(gridDiv, gridOptions);
+        });
+
+        // Load data from server
+        async function loadData() {
+            try {
+                console.log('Starting vendor pricing data load...');
+                showStatus('Loading vendor pricing data...', 'info');
+                
+                const response = await fetch('/api/vendor-pricing');
+                console.log('Response received:', response.status, response.ok);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Data parsed successfully:', data.length, 'records');
+                
+                if (!gridApi) {
+                    console.error('GridAPI is not available!');
+                    showStatus('Grid not ready yet', 'error');
+                    return;
+                }
+                
+                allData = data;
+                console.log('Setting row data...');
+                gridApi.setRowData(data);
+                console.log('Row data set, updating count...');
+                updateRowCount();
+                showStatus(`Loaded ${data.length} vendor pricing records successfully`, 'success');
+                console.log('Vendor pricing data loading complete');
+            } catch (error) {
+                console.error('Error loading vendor pricing data:', error);
+                showStatus('Error loading data: ' + error.message, 'error');
+            }
+        }
+
+        // Grid ready event - load data here when grid is fully initialized
+        function onGridReady(params) {
+            gridApi = params.api;
+            gridColumnApi = params.columnApi;
+            console.log('Vendor pricing grid ready, loading data...');
+            loadData(); // Load data after grid is ready
+        }
+
+        // Filter changed event
+        function onFilterChanged() {
+            updateRowCount();
+        }
+
+        // Selection changed event
+        function onSelectionChanged() {
+            updateRowCount();
+        }
+
+        // Context menu items
+        function getContextMenuItems(params) {
+            return [
+                {
+                    name: 'Copy Cell',
+                    action: function() {
+                        if (params.value) {
+                            navigator.clipboard.writeText(params.value);
+                            showStatus('Copied to clipboard', 'success');
+                        }
+                    },
+                    icon: '<i class="fa fa-copy"></i>'
+                },
+                {
+                    name: 'Copy Row',
+                    action: function() {
+                        if (params.node) {
+                            const rowData = params.node.data;
+                            const text = Object.values(rowData).join('\t');
+                            navigator.clipboard.writeText(text);
+                            showStatus('Row copied to clipboard', 'success');
+                        }
+                    }
+                },
+                'separator',
+                {
+                    name: 'View Details',
+                    action: function() {
+                        if (params.node) {
+                            viewRowDetails(params.node.data);
+                        }
+                    },
+                    icon: '<i class="fa fa-eye"></i>'
+                },
+                'separator',
+                'export',
+                'separator',
+                'autoSizeAll',
+                'expandAll',
+                'contractAll'
+            ];
+        }
+
+        // View row details
+        function viewRowDetails(rowData) {
+            const detailsHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Cost Code:</strong> ${rowData.cost_code || 'N/A'}<br>
+                        <strong>Item:</strong> ${rowData.item_name || 'N/A'}<br>
+                        <strong>Vendor:</strong> ${rowData.vendor_name || 'N/A'}<br>
+                        <strong>Price:</strong> $${Number(rowData.price || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}<br>
+                        <strong>Unit:</strong> ${rowData.unit_of_measure || 'N/A'}<br>
+                        <strong>Price Type:</strong> ${rowData.price_type || 'N/A'}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Product Description:</strong><br>
+                        <p class="text-muted">${rowData.product_description || 'N/A'}</p>
+                        <strong>Notes:</strong><br>
+                        <p class="text-muted">${rowData.notes || 'No notes'}</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('quickStatsContent').innerHTML = detailsHtml;
+            const modal = new bootstrap.Modal(document.getElementById('quickStatsModal'));
+            modal.show();
+        }
+
+        // Refresh grid
+        function refreshGrid() {
+            loadData();
+        }
+
+        // Export to CSV
+        function exportToCsv() {
+            gridApi.exportDataAsCsv({
+                fileName: 'vendor_pricing.csv',
+                columnSeparator: ',',
+                suppressQuotes: false
+            });
+            showStatus('Data exported to CSV', 'success');
+        }
+
+        // Export to Excel
+        function exportToExcel() {
+            gridApi.exportDataAsExcel({
+                fileName: 'vendor_pricing.xlsx',
+                sheetName: 'Vendor Pricing'
+            });
+            showStatus('Data exported to Excel', 'success');
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            gridApi.setFilterModel(null);
+            showStatus('Filters cleared', 'info');
+        }
+
+        // Fit columns to container
+        function fitColumns() {
+            gridApi.sizeColumnsToFit();
+        }
+
+        // Auto size columns
+        function autoSizeColumns() {
+            const allColumnIds = gridColumnApi.getAllColumns().map(column => column.getId());
+            gridColumnApi.autoSizeColumns(allColumnIds, false);
+        }
+
+        // Show quick stats
+        function showQuickStats() {
+            const filteredData = [];
+            gridApi.forEachNodeAfterFilter(node => {
+                filteredData.push(node.data);
+            });
+
+            const totalRecords = filteredData.length;
+            const uniqueVendors = new Set(filteredData.map(row => row.vendor_name)).size;
+            const uniqueCostCodes = new Set(filteredData.map(row => row.cost_code)).size;
+            
+            const prices = filteredData.map(row => Number(row.price || 0)).filter(price => price > 0);
+            const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+            const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+            const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+
+            const priceTypes = {};
+            filteredData.forEach(row => {
+                const type = row.price_type || 'Unknown';
+                priceTypes[type] = (priceTypes[type] || 0) + 1;
+            });
+
+            let priceTypesList = '';
+            Object.entries(priceTypes).forEach(([type, count]) => {
+                priceTypesList += `<li>${type}: ${count} items</li>`;
+            });
+
+            const statsHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>📊 Overview</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Total Records:</strong> ${totalRecords.toLocaleString()}</li>
+                            <li><strong>Unique Vendors:</strong> ${uniqueVendors}</li>
+                            <li><strong>Unique Cost Codes:</strong> ${uniqueCostCodes}</li>
+                        </ul>
+                        
+                        <h6>💰 Pricing Analysis</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Average Price:</strong> $${avgPrice.toLocaleString('en-US', {minimumFractionDigits: 2})}</li>
+                            <li><strong>Minimum Price:</strong> $${minPrice.toLocaleString('en-US', {minimumFractionDigits: 2})}</li>
+                            <li><strong>Maximum Price:</strong> $${maxPrice.toLocaleString('en-US', {minimumFractionDigits: 2})}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>🏷️ Price Types</h6>
+                        <ul class="list-unstyled">
+                            ${priceTypesList}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('quickStatsContent').innerHTML = statsHtml;
+            const modal = new bootstrap.Modal(document.getElementById('quickStatsModal'));
+            modal.show();
+        }
+
+        // Update row count display
+        function updateRowCount() {
+            const totalRows = gridApi.getDisplayedRowCount();
+            const selectedRows = gridApi.getSelectedRows().length;
+            
+            let filteredRows = 0;
+            gridApi.forEachNodeAfterFilter(() => filteredRows++);
+            
+            document.getElementById('rowCount').textContent = totalRows;
+            document.getElementById('selectedCount').textContent = selectedRows;
+            document.getElementById('filteredCount').textContent = filteredRows;
+        }
+
+        // Show status message
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusMessage');
+            const alertClass = {
+                'success': 'alert-success',
+                'error': 'alert-danger',
+                'warning': 'alert-warning',
+                'info': 'alert-info'
+            }[type] || 'alert-info';
+            
+            statusDiv.innerHTML = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+            
+            // Auto-dismiss after 5 seconds for success/info messages
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    const alert = statusDiv.querySelector('.alert');
+                    if (alert) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'r':
+                        e.preventDefault();
+                        refreshGrid();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        exportToCsv();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

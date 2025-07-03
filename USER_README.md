@@ -89,6 +89,22 @@ When you first open the system, you'll see a dashboard showing:
 
 ## 💡 Common Tasks
 
+### Duplicating or Deleting a Takeoff Row
+
+**Duplicate a Row:**
+1. Go to the "Comprehensive Takeoff Analysis" grid.
+2. Select the row you want to duplicate (click the checkbox).
+3. Click the blue "Duplicate Row" button.
+4. The new row will appear in the grid and will be saved to the database. After refreshing, the duplicated row will persist.
+
+**Delete a Row:**
+1. Select the row you want to delete (click the checkbox).
+2. Click the red "Delete Row" button.
+3. Confirm the deletion in the popup.
+4. The row will be removed from the grid and deleted from the database.
+
+**Note:** Only fields that exist in the takeoff record (such as notes, room, spec name, etc.) are saved when duplicating. Fields like plan name, option, and cost code are joined from other tables and cannot be set by duplication alone.
+
 ### Adding New Takeoff Data
 1. Go to "Smart Takeoffs" view
 2. Scroll to bottom and click "Add New"

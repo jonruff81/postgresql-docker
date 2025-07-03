@@ -17,6 +17,7 @@ A comprehensive PostgreSQL-based system for managing construction takeoff pricin
 - **📋 Table Management**: Browse, search, edit, delete records in any table
 - **🎯 Smart Takeoffs**: Advanced takeoff editing with inline updates and meaningful names
 - **📈 Enhanced Views**: Filtered takeoff analysis with cost summaries
+- **📝 Duplicate & Delete Rows**: Easily duplicate or delete takeoff records directly from the Comprehensive Takeoff Analysis grid
 - **📥 Bulk Import**: CSV import functionality for batch data loading
 - **🔍 Search & Filter**: Powerful search across all data fields
 - **📱 Responsive Design**: Works on desktop, tablet, and mobile
@@ -260,6 +261,13 @@ DELETE /api/takeoffs/{takeoff_id}/delete
 - All virtual environment files properly excluded
 - Clean repository structure
 - Comprehensive documentation
+
+## 🆕 Recent Enhancements
+
+- **Duplicate Row**: You can now duplicate any row in the Comprehensive Takeoff Analysis grid. The new row is saved to the database and persists after refresh.
+- **Delete Row**: Any row (including duplicated ones) can be deleted from the grid and database.
+- **Backend Logic**: Duplicating a row creates a new takeoff record, preserving all fields that exist in the `takeoff.takeoffs` table (e.g., notes, room, spec_name). Fields joined from other tables (plan name, option, cost code, etc.) are not directly settable.
+- **Known Limitation**: Only fields present in the `takeoff.takeoffs` table are saved when duplicating. Other fields are joined from related tables and cannot be set by duplication alone.
 
 ## 📝 Next Steps
 

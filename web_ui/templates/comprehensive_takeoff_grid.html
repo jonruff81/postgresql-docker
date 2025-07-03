@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Takeoff Analysis - AG Grid</title>
+    
+    <!-- AG Grid CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/styles/ag-theme-alpine.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .ag-theme-alpine {
+            font-size: 14px;
+        }
+        .grid-container {
+            height: 600px;
+            width: 100%;
+        }
+        .header-section {
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            margin-bottom: 15px;
+        }
+        .status-message {
+            margin-top: 10px;
+        }
+        .duplicated-row {
+            background-color: #e3f2fd !important;
+        }
+        .ag-row.duplicated-row {
+            background-color: #e3f2fd !important;
+        }
+        .ag-row.duplicated-row .ag-cell {
+            background-color: #e3f2fd !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <!-- Header Section -->
+        <div class="header-section">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2><i class="fas fa-chart-line"></i> Comprehensive Takeoff Analysis</h2>
+                    <p class="text-muted">Complete takeoff analysis with plan options, cost codes, items, quantities, pricing, and vendor information</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Toggle Buttons -->
+        <div class="row mb-2">
+            <div class="col-12">
+                <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filterControls" aria-expanded="true" aria-controls="filterControls">
+                    <i class="fas fa-filter"></i> <span id="filterToggleText">Hide Filters</span>
+                </button>
+                <button class="btn btn-outline-success btn-sm ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#summaryCard" aria-expanded="true" aria-controls="summaryCard">
+                    <i class="fas fa-chart-pie"></i> <span id="summaryToggleText">Hide Summary</span>
+                </button>
+                <small class="text-muted ms-2">Toggle filter controls and pricing summary</small>
+            </div>
+        </div>
+
+        <!-- Custom Filter Controls (Collapsible) -->
+        <div class="collapse show" id="filterControls">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-building"></i> Filter by Plans
+                                <button class="btn btn-sm btn-outline-primary float-end" onclick="selectAllPlans()">Select All</button>
+                                <button class="btn btn-sm btn-outline-secondary float-end me-2" onclick="clearAllPlans()">Clear All</button>
+                            </h6>
+                        </div>
+                        <div class="card-body" style="max-height: 150px; overflow-y: auto;">
+                            <div id="planFilters" class="row">
+                                <!-- Plan checkboxes will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cog"></i> Filter by Options
+                                <button class="btn btn-sm btn-outline-primary float-end" onclick="selectAllOptions()">Select All</button>
+                                <button class="btn btn-sm btn-outline-secondary float-end me-2" onclick="clearAllOptions()">Clear All</button>
+                            </h6>
+                        </div>
+                        <div class="card-body" style="max-height: 150px; overflow-y: auto;">
+                            <div id="optionFilters" class="row">
+                                <!-- Option checkboxes will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Card (Collapsible) -->
+        <div class="collapse show" id="summaryCard">
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-chart-pie text-success"></i> Filtered Plan & Option Summary
+                                <span class="badge bg-success ms-2" id="summaryBadge">0 combinations</span>
+                                <small class="text-muted float-end" id="summaryTotal">Total: $0.00</small>
+                            </h6>
+                        </div>
+                        <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                            <div id="summaryContent" class="row">
+                                <div class="col-12 text-center text-muted">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading summary...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-warning" onclick="refreshGrid()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button type="button" class="btn btn-info" onclick="exportToCSV()">
+                        <i class="fas fa-download"></i> Export CSV
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                </div>
+                <div class="btn-group ms-2" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearAllFilters()">
+                        <i class="fas fa-filter"></i> Clear All Filters
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="fitColumns()">
+                        <i class="fas fa-arrows-alt-h"></i> Fit Columns
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="autoSizeColumns()">
+                        <i class="fas fa-expand-arrows-alt"></i> Auto Size
+                    </button>
+                </div>
+                <div class="btn-group ms-2" role="group">
+                    <button type="button" class="btn btn-primary" onclick="getQuickStats()">
+                        <i class="fas fa-chart-bar"></i> Quick Stats
+                    </button>
+                </div>
+                <div class="btn-group ms-2" role="group">
+                    <button type="button" class="btn btn-outline-primary" onclick="duplicateSelectedRows()">
+                        <i class="fas fa-copy"></i> Duplicate Row
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="deleteSelectedRow()">
+                        <i class="fas fa-trash"></i> Delete Row
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessages" class="status-message"></div>
+
+        <!-- AG Grid Container -->
+        <div class="grid-container">
+            <div id="comprehensiveTakeoffGrid" class="ag-theme-alpine" style="height: 100%; width: 100%;"></div>
+        </div>
+
+        <!-- Grid Info -->
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <small class="text-muted">
+                    <span id="rowCount">0</span> records | 
+                    <span id="selectedCount">0</span> selected |
+                    <span id="filteredCount">0</span> filtered
+                </small>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">
+                    Advanced filtering and export capabilities available
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Modal -->
+    <div class="modal fade" id="statsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Takeoff Analysis Statistics</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="statsContent">
+                    <!-- Stats content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AG Grid JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/dist/ag-grid-community.min.js"></script>
+    
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let gridApi;
+        let gridColumnApi;
+        let gridData = [];
+        let uniquePlans = [];
+        let uniqueOptions = [];
+        let selectedPlans = new Set();
+        let selectedOptions = new Set();
+        
+        // Dependency mappings for cascading dropdowns
+        let dependencyMappings = {
+            planToOptions: new Map(),
+            costCodeToItems: new Map(),
+            vendorToItems: new Map(),
+            jobToCustomers: new Map(),
+            allVendors: new Set(),
+            allJobs: new Set(),
+            allCustomers: new Set(),
+            allCostCodes: new Set(),
+            allItemNames: new Set()
+        };
+
+        // Track duplicated rows for blue highlighting
+        let duplicatedRowIds = new Set();
+        let nextRowId = 1;
+
+        // Grid column definitions
+        const columnDefs = [
+            {
+                headerName: "Select",
+                checkboxSelection: true,
+                headerCheckboxSelection: false,
+                width: 50,
+                pinned: 'left',
+                lockPosition: true,
+                suppressMenu: true,
+                suppressSorting: true,
+                suppressFilter: true
+            },
+            {
+                headerName: "Plan Info",
+                children: [
+                    { 
+                        field: "plan_full_name", 
+                        headerName: "Plan Name", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            values: [], // Will be populated when data loads
+                            selectAllOnMiniFilter: true,
+                            miniFilter: true,
+                            buttons: ['reset', 'apply']
+                        },
+                        sort: "asc", 
+                        pinned: 'left', 
+                        width: 180 
+                    },
+                    { 
+                        field: "option_name", 
+                        headerName: "Option", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            values: [], // Will be populated when data loads
+                            selectAllOnMiniFilter: true,
+                            miniFilter: true,
+                            buttons: ['reset', 'apply']
+                        },
+                        pinned: 'left', 
+                        width: 120 
+                    }
+                ]
+            },
+            {
+                headerName: "Cost Details",
+                children: [
+                    { 
+                        field: "cost_code", 
+                        headerName: "Cost Code", 
+                        filter: true, 
+                        width: 100,
+                        editable: true,
+                        cellEditor: 'agSelectCellEditor',
+                        cellEditorParams: {
+                            values: () => Array.from(dependencyMappings.allCostCodes).sort()
+                        },
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    },
+                    { 
+                        field: "item_name", 
+                        headerName: "Item Name", 
+                        filter: true, 
+                        width: 200,
+                        editable: true,
+                        cellEditor: 'agSelectCellEditor',
+                        cellEditorParams: (params) => {
+                            // Get items based on cost code if available
+                            let values = Array.from(dependencyMappings.allItemNames).sort();
+                            if (params.data && params.data.cost_code) {
+                                const costCodeItems = getItemsForCostCode(params.data.cost_code);
+                                if (costCodeItems.length > 0) {
+                                    values = costCodeItems;
+                                }
+                            }
+                            // Also consider vendor if available
+                            if (params.data && params.data.vendor_name) {
+                                const vendorItems = getItemsForVendor(params.data.vendor_name);
+                                if (vendorItems.length > 0) {
+                                    // Find intersection or union depending on requirements
+                                    values = vendorItems.filter(item => values.includes(item));
+                                    if (values.length === 0) values = vendorItems;
+                                }
+                            }
+                            return { values: values };
+                        },
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    },
+                    { 
+                        field: "item_description", 
+                        headerName: "Item Description", 
+                        filter: true, 
+                        width: 250, 
+                        tooltipField: "item_description",
+                        editable: true,
+                        cellEditor: 'agLargeTextCellEditor',
+                        cellEditorPopup: true,
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    }
+                ]
+            },
+            {
+                headerName: "Quantities & Pricing",
+                children: [
+                    { field: "quantity_source", headerName: "Quantity Source", filter: true, width: 140 },
+                    { 
+                        field: "quantity", 
+                        headerName: "Quantity", 
+                        filter: 'agNumberColumnFilter',
+                        cellClass: 'ag-right-aligned-cell',
+                        valueFormatter: params => params.value ? parseFloat(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4}) : '',
+                        width: 100,
+                        editable: true,
+                        cellEditor: 'agNumberCellEditor',
+                        cellEditorParams: {
+                            min: 0,
+                            precision: 4
+                        },
+                        valueParser: params => parseFloat(params.newValue) || 0,
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    },
+                    { 
+                        field: "unit_price", 
+                        headerName: "Unit Price", 
+                        filter: 'agNumberColumnFilter',
+                        cellClass: 'ag-right-aligned-cell',
+                        valueFormatter: params => params.value ? '$' + parseFloat(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '',
+                        width: 110,
+                        editable: true,
+                        cellEditor: 'agNumberCellEditor',
+                        cellEditorParams: {
+                            min: 0,
+                            precision: 2
+                        },
+                        valueParser: params => parseFloat(params.newValue) || 0,
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    },
+                    { 
+                        field: "price_factor", 
+                        headerName: "Price Factor", 
+                        filter: 'agNumberColumnFilter',
+                        cellClass: 'ag-right-aligned-cell',
+                        valueFormatter: params => params.value ? parseFloat(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4}) : '',
+                        width: 110,
+                        editable: true,
+                        cellEditor: 'agNumberCellEditor',
+                        cellEditorParams: {
+                            min: 0,
+                            precision: 4
+                        },
+                        valueParser: params => parseFloat(params.newValue) || 1,
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    },
+                    { 
+                        field: "unit_of_measure", 
+                        headerName: "Unit", 
+                        filter: true, 
+                        width: 80,
+                        editable: true,
+                        cellEditor: 'agSelectCellEditor',
+                        cellEditorParams: {
+                            values: ['EA', 'SF', 'LF', 'CF', 'SY', 'LB', 'TON', 'GAL', 'HR']
+                        },
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    },
+                    { 
+                        field: "extended_price", 
+                        headerName: "Extended Price", 
+                        filter: 'agNumberColumnFilter',
+                        cellClass: 'ag-right-aligned-cell',
+                        valueFormatter: params => params.value ? '$' + parseFloat(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '',
+                        cellStyle: {'background-color': '#e8f5e8', fontWeight: 'bold'},
+                        width: 130,
+                        editable: false, // This will be calculated automatically
+                        valueGetter: params => {
+                            // Calculate extended price from quantity * unit_price * price_factor
+                            if (params.data) {
+                                const quantity = parseFloat(params.data.quantity || 0);
+                                const unitPrice = parseFloat(params.data.unit_price || 0);
+                                const priceFactor = parseFloat(params.data.price_factor || 1);
+                                return quantity * unitPrice * priceFactor;
+                            }
+                            return 0;
+                        }
+                    }
+                ]
+            },
+            {
+                headerName: "Additional Info",
+                children: [
+                    { 
+                        field: "vendor_name", 
+                        headerName: "Vendor", 
+                        filter: true, 
+                        width: 150,
+                        editable: true,
+                        cellEditor: 'agSelectCellEditor',
+                        cellEditorParams: {
+                            values: () => Array.from(dependencyMappings.allVendors).sort()
+                        },
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    },
+                    { 
+                        field: "notes", 
+                        headerName: "Notes", 
+                        filter: true, 
+                        width: 200, 
+                        tooltipField: "notes",
+                        editable: true,
+                        cellEditor: 'agLargeTextCellEditor',
+                        cellEditorPopup: true,
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    },
+                    { field: "job_name", headerName: "Job Name", filter: true, width: 150 },
+                    { field: "job_number", headerName: "Job Number", filter: true, width: 120 },
+                    { field: "customer_name", headerName: "Customer", filter: true, width: 150 },
+                    { 
+                        field: "room", 
+                        headerName: "Room", 
+                        filter: true, 
+                        width: 120,
+                        editable: true,
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    },
+                    { 
+                        field: "spec_name", 
+                        headerName: "Spec", 
+                        filter: true, 
+                        width: 120,
+                        editable: true,
+                        cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
+                    }
+                ]
+            }
+        ];
+
+        // Grid options
+        const gridOptions = {
+            columnDefs: columnDefs,
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true,
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                },
+            },
+            enableRangeSelection: true,
+            enableCharts: true,
+            rowSelection: 'single', // Enable single row selection
+            rowMultiSelectWithClick: false, // Prevent multi-select
+            sideBar: {
+                toolPanels: ['columns', 'filters'],
+                defaultToolPanel: 'columns'
+            },
+            statusBar: {
+                statusPanels: [
+                    { statusPanel: 'agTotalAndFilteredRowCountComponent' },
+                    { statusPanel: 'agSelectedRowCountComponent' },
+                    { statusPanel: 'agAggregationComponent' }
+                ]
+            },
+            pagination: true,
+            paginationPageSize: 500,
+            paginationPageSizeSelector: [100, 200, 500, 1000],
+            paginationAutoPageSize: false,
+            animateRows: true,
+            onGridReady: onGridReady,
+            onFilterChanged: updateRowCount,
+            onSelectionChanged: updateRowCount,
+            onCellValueChanged: onCellValueChanged,
+            undoRedoCellEditing: true,
+            undoRedoCellEditingLimit: 20,
+            getRowId: (params) => {
+                // Use custom row ID if available, otherwise use array index
+                return params.data.customRowId || params.data.id || `row_${nextRowId++}`;
+            },
+            getRowStyle: (params) => {
+                // Apply blue background to duplicated rows
+                if (params.data && params.data.customRowId && duplicatedRowIds.has(params.data.customRowId)) {
+                    return { background: '#e3f2fd' };
+                }
+                return null;
+            }
+        };
+
+        // Initialize grid when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const gridDiv = document.querySelector('#comprehensiveTakeoffGrid');
+            new agGrid.Grid(gridDiv, gridOptions);
+            
+            // Add event listeners for filter toggle
+            const filterControls = document.getElementById('filterControls');
+            const filterToggleText = document.getElementById('filterToggleText');
+            
+            filterControls.addEventListener('show.bs.collapse', function () {
+                filterToggleText.textContent = 'Hide Filters';
+            });
+            
+            filterControls.addEventListener('hide.bs.collapse', function () {
+                filterToggleText.textContent = 'Show Filters';
+            });
+            
+            // Add event listeners for summary toggle
+            const summaryCard = document.getElementById('summaryCard');
+            const summaryToggleText = document.getElementById('summaryToggleText');
+            
+            summaryCard.addEventListener('show.bs.collapse', function () {
+                summaryToggleText.textContent = 'Hide Summary';
+            });
+            
+            summaryCard.addEventListener('hide.bs.collapse', function () {
+                summaryToggleText.textContent = 'Show Summary';
+            });
+        });
+
+        // Grid ready event - load data here when grid is fully initialized
+        function onGridReady(params) {
+            gridApi = params.api;
+            gridColumnApi = params.columnApi;
+            console.log('Grid ready, loading data...');
+            
+            // Explicitly set page size to ensure it takes effect
+            gridApi.paginationSetPageSize(500);
+            console.log('Page size set to 500');
+            
+            loadGridData();
+        }
+
+        // Load data from API
+        function loadGridData() {
+            showStatusMessage('Loading takeoff analysis data...', 'info');
+            
+            fetch('/api/comprehensive-takeoff-analysis')
+                .then(response => response.json())
+                .then(data => {
+                    gridData = data;
+                    populateFilterOptions(data);
+                    gridApi.setRowData(data);
+                    updateRowCount();
+                    updateSummaryCard(data);  // Update summary with initial data
+                    showStatusMessage(`Loaded ${data.length} takeoff records successfully`, 'success');
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    showStatusMessage('Error loading takeoff analysis data', 'danger');
+                });
+        }
+
+        // Populate filter options from data
+        function populateFilterOptions(data) {
+            try {
+                console.log('Populating filter options with data:', data.length, 'records');
+                
+                // Extract unique plans and options
+                const plansSet = new Set();
+                const optionsSet = new Set();
+                
+                data.forEach(row => {
+                    if (row.plan_full_name) plansSet.add(row.plan_full_name);
+                    if (row.option_name) optionsSet.add(row.option_name);
+                });
+                
+                uniquePlans = Array.from(plansSet).sort();
+                uniqueOptions = Array.from(optionsSet).sort();
+                
+                // Build dependency mappings
+                buildDependencyMappings(data);
+                
+                console.log('Unique plans:', uniquePlans);
+                console.log('Unique options:', uniqueOptions);
+                
+                // Clear existing selections
+                selectedPlans.clear();
+                selectedOptions.clear();
+                
+                // Populate plan checkboxes
+                const planContainer = document.getElementById('planFilters');
+                if (!planContainer) {
+                    console.error('Plan container not found!');
+                    return;
+                }
+                planContainer.innerHTML = '';
+                
+                uniquePlans.forEach((plan, index) => {
+                    const safeId = `plan_${index}`;
+                    const colDiv = document.createElement('div');
+                    colDiv.className = 'col-12 col-md-6 mb-1';
+                    
+                    const formCheck = document.createElement('div');
+                    formCheck.className = 'form-check';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.className = 'form-check-input';
+                    checkbox.type = 'checkbox';
+                    checkbox.id = safeId;
+                    checkbox.value = plan;
+                    checkbox.checked = true;
+                    checkbox.addEventListener('change', () => handlePlanFilterChange(plan));
+                    
+                    // Add to selected set since checkbox is checked
+                    selectedPlans.add(plan);
+                    
+                    const label = document.createElement('label');
+                    label.className = 'form-check-label small';
+                    label.htmlFor = safeId;
+                    label.title = plan;
+                    label.textContent = plan;
+                    
+                    formCheck.appendChild(checkbox);
+                    formCheck.appendChild(label);
+                    colDiv.appendChild(formCheck);
+                    planContainer.appendChild(colDiv);
+                });
+                
+                // Populate option checkboxes
+                const optionContainer = document.getElementById('optionFilters');
+                if (!optionContainer) {
+                    console.error('Option container not found!');
+                    return;
+                }
+                optionContainer.innerHTML = '';
+                
+                uniqueOptions.forEach((option, index) => {
+                    const safeId = `option_${index}`;
+                    const colDiv = document.createElement('div');
+                    colDiv.className = 'col-12 col-md-6 mb-1';
+                    
+                    const formCheck = document.createElement('div');
+                    formCheck.className = 'form-check';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.className = 'form-check-input';
+                    checkbox.type = 'checkbox';
+                    checkbox.id = safeId;
+                    checkbox.value = option;
+                    checkbox.checked = true;
+                    checkbox.addEventListener('change', () => handleOptionFilterChange(option));
+                    
+                    // Add to selected set since checkbox is checked
+                    selectedOptions.add(option);
+                    
+                    const label = document.createElement('label');
+                    label.className = 'form-check-label small';
+                    label.htmlFor = safeId;
+                    label.title = option;
+                    label.textContent = option;
+                    
+                    formCheck.appendChild(checkbox);
+                    formCheck.appendChild(label);
+                    colDiv.appendChild(formCheck);
+                    optionContainer.appendChild(colDiv);
+                });
+                
+                console.log('Initial selected plans:', Array.from(selectedPlans));
+                console.log('Initial selected options:', Array.from(selectedOptions));
+                console.log('Filter options populated successfully');
+                showStatusMessage('Filter controls loaded successfully', 'success');
+                
+                // Apply initial filters to show all data initially
+                console.log('Applying initial filters...');
+                applyCustomFilters();
+                
+            } catch (error) {
+                console.error('Error populating filter options:', error);
+                showStatusMessage('Error loading filter controls', 'danger');
+            }
+        }
+
+        // Handle plan filter changes
+        function handlePlanFilterChange(plan) {
+            console.log('Plan filter change triggered for:', plan);
+            
+            // Find the checkbox by searching all plan checkboxes
+            let checkbox = null;
+            const allPlanCheckboxes = document.querySelectorAll('#planFilters input[type="checkbox"]');
+            for (let cb of allPlanCheckboxes) {
+                if (cb.value === plan) {
+                    checkbox = cb;
+                    break;
+                }
+            }
+            
+            if (checkbox) {
+                if (checkbox.checked) {
+                    selectedPlans.add(plan);
+                    console.log('✅ Added plan filter:', plan);
+                } else {
+                    selectedPlans.delete(plan);
+                    console.log('❌ Removed plan filter:', plan);
+                }
+            } else {
+                console.error('❌ Could not find checkbox for plan:', plan);
+            }
+            
+            console.log('🔍 Current selected plans:', Array.from(selectedPlans));
+            applyCustomFilters();
+        }
+
+        // Handle option filter changes
+        function handleOptionFilterChange(option) {
+            console.log('Option filter change triggered for:', option);
+            
+            // Find the checkbox by searching all option checkboxes
+            let checkbox = null;
+            const allOptionCheckboxes = document.querySelectorAll('#optionFilters input[type="checkbox"]');
+            for (let cb of allOptionCheckboxes) {
+                if (cb.value === option) {
+                    checkbox = cb;
+                    break;
+                }
+            }
+            
+            if (checkbox) {
+                if (checkbox.checked) {
+                    selectedOptions.add(option);
+                    console.log('✅ Added option filter:', option);
+                } else {
+                    selectedOptions.delete(option);
+                    console.log('❌ Removed option filter:', option);
+                }
+            } else {
+                console.error('❌ Could not find checkbox for option:', option);
+            }
+            
+            console.log('🔍 Current selected options:', Array.from(selectedOptions));
+            applyCustomFilters();
+        }
+
+        // Apply custom filters to grid
+        function applyCustomFilters() {
+            if (!gridApi) return;
+            
+            console.log('🔄 Applying filters:', {
+                selectedPlans: Array.from(selectedPlans),
+                selectedOptions: Array.from(selectedOptions)
+            });
+            
+            // Filter data based on selected plans and options
+            const filteredData = gridData.filter(row => {
+                const planMatch = selectedPlans.has(row.plan_full_name);
+                const optionMatch = selectedOptions.has(row.option_name);
+                return planMatch && optionMatch;
+            });
+            
+            console.log(`📊 Filtered ${gridData.length} records down to ${filteredData.length}`);
+            
+            // Clear any existing selection before updating data
+            gridApi.deselectAll();
+            
+            // Set the filtered data directly to preserve original IDs
+            gridApi.setRowData(filteredData);
+            
+            // Force grid refresh
+            setTimeout(() => {
+                gridApi.refreshCells();
+                updateRowCount();
+            }, 100);
+            
+            updateSummaryCard(filteredData);
+            
+            const selectedPlanCount = selectedPlans.size;
+            const selectedOptionCount = selectedOptions.size;
+            showStatusMessage(`✅ Filtered to ${filteredData.length} records (${selectedPlanCount} plans, ${selectedOptionCount} options)`, 'info');
+        }
+
+        // Update summary card with filtered data
+        function updateSummaryCard(filteredData) {
+            try {
+                // Calculate plan+option combinations and their totals
+                const combinationTotals = new Map();
+                let grandTotal = 0;
+                
+                filteredData.forEach(row => {
+                    const key = `${row.plan_full_name} | ${row.option_name}`;
+                    const extendedPrice = parseFloat(row.extended_price || 0);
+                    
+                    if (combinationTotals.has(key)) {
+                        combinationTotals.set(key, combinationTotals.get(key) + extendedPrice);
+                    } else {
+                        combinationTotals.set(key, extendedPrice);
+                    }
+                    
+                    grandTotal += extendedPrice;
+                });
+                
+                // Sort combinations by total value (highest first)
+                const sortedCombinations = Array.from(combinationTotals.entries())
+                    .sort((a, b) => b[1] - a[1]);
+                
+                // Update summary badge and total
+                const summaryBadge = document.getElementById('summaryBadge');
+                const summaryTotal = document.getElementById('summaryTotal');
+                const summaryContent = document.getElementById('summaryContent');
+                
+                summaryBadge.textContent = `${sortedCombinations.length} combinations`;
+                summaryTotal.textContent = `Total: $${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                
+                // Clear and populate summary content
+                summaryContent.innerHTML = '';
+                
+                if (sortedCombinations.length === 0) {
+                    summaryContent.innerHTML = `
+                        <div class="col-12 text-center text-muted">
+                            <i class="fas fa-info-circle"></i> No plan & option combinations found for current filters
+                        </div>
+                    `;
+                } else {
+                    sortedCombinations.forEach(([combination, total]) => {
+                        const [planName, optionName] = combination.split(' | ');
+                        const percentage = grandTotal > 0 ? (total / grandTotal * 100) : 0;
+                        
+                        const colDiv = document.createElement('div');
+                        colDiv.className = 'col-md-6 mb-2';
+                        
+                        colDiv.innerHTML = `
+                            <div class="card card-body p-2 small">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold text-primary" style="font-size: 0.85em;">${planName}</div>
+                                        <div class="text-muted" style="font-size: 0.8em;">${optionName}</div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold text-success">$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+                                        <div class="text-muted" style="font-size: 0.75em;">${percentage.toFixed(1)}%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        summaryContent.appendChild(colDiv);
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Error updating summary card:', error);
+                const summaryContent = document.getElementById('summaryContent');
+                summaryContent.innerHTML = `
+                    <div class="col-12 text-center text-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading summary
+                    </div>
+                `;
+            }
+        }
+
+        // Select all plans
+        function selectAllPlans() {
+            selectedPlans = new Set(uniquePlans);
+            uniquePlans.forEach((plan, index) => {
+                const checkbox = document.getElementById(`plan_${index}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            applyCustomFilters();
+        }
+
+        // Clear all plans
+        function clearAllPlans() {
+            selectedPlans.clear();
+            uniquePlans.forEach((plan, index) => {
+                const checkbox = document.getElementById(`plan_${index}`);
+                if (checkbox) checkbox.checked = false;
+            });
+            applyCustomFilters();
+        }
+
+        // Select all options
+        function selectAllOptions() {
+            selectedOptions = new Set(uniqueOptions);
+            uniqueOptions.forEach((option, index) => {
+                const checkbox = document.getElementById(`option_${index}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            applyCustomFilters();
+        }
+
+        // Clear all options
+        function clearAllOptions() {
+            selectedOptions.clear();
+            uniqueOptions.forEach((option, index) => {
+                const checkbox = document.getElementById(`option_${index}`);
+                if (checkbox) checkbox.checked = false;
+            });
+            applyCustomFilters();
+        }
+
+        // Clear all filters (both custom and grid filters)
+        function clearAllFilters() {
+            // Clear custom filters
+            selectAllPlans();
+            selectAllOptions();
+            
+            // Clear grid filters
+            gridApi.setFilterModel(null);
+            showStatusMessage('All filters cleared', 'info');
+        }
+
+        // Refresh grid
+        function refreshGrid() {
+            loadGridData();
+        }
+
+        // Export functions
+        function exportToCSV() {
+            gridApi.exportDataAsCsv({
+                fileName: 'comprehensive_takeoff_analysis.csv'
+            });
+            showStatusMessage('Data exported to CSV', 'success');
+        }
+
+        function exportToExcel() {
+            gridApi.exportDataAsExcel({
+                fileName: 'comprehensive_takeoff_analysis.xlsx'
+            });
+            showStatusMessage('Data exported to Excel', 'success');
+        }
+
+        // Utility functions
+        function clearFilters() {
+            gridApi.setFilterModel(null);
+            showStatusMessage('Filters cleared', 'info');
+        }
+
+        function fitColumns() {
+            gridApi.sizeColumnsToFit();
+        }
+
+        function autoSizeColumns() {
+            const allColumnIds = [];
+            gridApi.getColumns().forEach(column => {
+                allColumnIds.push(column.getId());
+            });
+            gridApi.autoSizeColumns(allColumnIds, false);
+        }
+
+        // Quick stats function
+        function getQuickStats() {
+            if (!gridData || gridData.length === 0) {
+                showStatusMessage('No data available for statistics', 'warning');
+                return;
+            }
+
+            // Calculate statistics
+            const stats = {
+                totalRecords: gridData.length,
+                totalExtendedPrice: 0,
+                uniquePlans: new Set(),
+                uniqueVendors: new Set(),
+                uniqueCostCodes: new Set(),
+                costCodeBreakdown: {},
+                vendorBreakdown: {}
+            };
+
+            gridData.forEach(row => {
+                if (row.extended_price) {
+                    stats.totalExtendedPrice += parseFloat(row.extended_price);
+                }
+                if (row.plan_full_name) {
+                    stats.uniquePlans.add(row.plan_full_name);
+                }
+                if (row.vendor_name) {
+                    stats.uniqueVendors.add(row.vendor_name);
+                    stats.vendorBreakdown[row.vendor_name] = (stats.vendorBreakdown[row.vendor_name] || 0) + parseFloat(row.extended_price || 0);
+                }
+                if (row.cost_code) {
+                    stats.uniqueCostCodes.add(row.cost_code);
+                    stats.costCodeBreakdown[row.cost_code] = (stats.costCodeBreakdown[row.cost_code] || 0) + parseFloat(row.extended_price || 0);
+                }
+            });
+
+            // Display stats in modal
+            const statsHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Overview</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total Records:</span>
+                                <span class="fw-bold">${stats.totalRecords.toLocaleString()}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total Extended Price:</span>
+                                <span class="fw-bold text-success">$${stats.totalExtendedPrice.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Unique Plans:</span>
+                                <span class="fw-bold">${stats.uniquePlans.size}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Unique Vendors:</span>
+                                <span class="fw-bold">${stats.uniqueVendors.size}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Unique Cost Codes:</span>
+                                <span class="fw-bold">${stats.uniqueCostCodes.size}</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Top 5 Cost Codes by Value</h6>
+                        <div class="small">
+                            ${Object.entries(stats.costCodeBreakdown)
+                                .sort((a, b) => b[1] - a[1])
+                                .slice(0, 5)
+                                .map(([code, value]) => 
+                                    `<div class="d-flex justify-content-between mb-1">
+                                        <span>${code}:</span>
+                                        <span class="fw-bold">$${value.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                                    </div>`
+                                ).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('statsContent').innerHTML = statsHtml;
+            new bootstrap.Modal(document.getElementById('statsModal')).show();
+        }
+
+        // Build dependency mappings from data
+        function buildDependencyMappings(data) {
+            console.log('Building dependency mappings...');
+            
+            // Clear existing mappings
+            dependencyMappings = {
+                planToOptions: new Map(),
+                costCodeToItems: new Map(),
+                vendorToItems: new Map(),
+                jobToCustomers: new Map(),
+                allVendors: new Set(),
+                allJobs: new Set(),
+                allCustomers: new Set(),
+                allCostCodes: new Set(),
+                allItemNames: new Set()
+            };
+            
+            data.forEach(row => {
+                // Plan to Options mapping
+                if (row.plan_full_name && row.option_name) {
+                    if (!dependencyMappings.planToOptions.has(row.plan_full_name)) {
+                        dependencyMappings.planToOptions.set(row.plan_full_name, new Set());
+                    }
+                    dependencyMappings.planToOptions.get(row.plan_full_name).add(row.option_name);
+                }
+                
+                // Cost Code to Items mapping
+                if (row.cost_code && row.item_name) {
+                    if (!dependencyMappings.costCodeToItems.has(row.cost_code)) {
+                        dependencyMappings.costCodeToItems.set(row.cost_code, new Set());
+                    }
+                    dependencyMappings.costCodeToItems.get(row.cost_code).add(row.item_name);
+                }
+                
+                // Vendor to Items mapping
+                if (row.vendor_name && row.item_name) {
+                    if (!dependencyMappings.vendorToItems.has(row.vendor_name)) {
+                        dependencyMappings.vendorToItems.set(row.vendor_name, new Set());
+                    }
+                    dependencyMappings.vendorToItems.get(row.vendor_name).add(row.item_name);
+                }
+                
+                // Job to Customer mapping
+                if (row.job_name && row.customer_name) {
+                    if (!dependencyMappings.jobToCustomers.has(row.job_name)) {
+                        dependencyMappings.jobToCustomers.set(row.job_name, new Set());
+                    }
+                    dependencyMappings.jobToCustomers.get(row.job_name).add(row.customer_name);
+                }
+                
+                // Collect all unique values
+                if (row.vendor_name) dependencyMappings.allVendors.add(row.vendor_name);
+                if (row.job_name) dependencyMappings.allJobs.add(row.job_name);
+                if (row.customer_name) dependencyMappings.allCustomers.add(row.customer_name);
+                if (row.cost_code) dependencyMappings.allCostCodes.add(row.cost_code);
+                if (row.item_name) dependencyMappings.allItemNames.add(row.item_name);
+            });
+            
+            console.log('Dependency mappings built:', {
+                planToOptions: dependencyMappings.planToOptions.size,
+                costCodeToItems: dependencyMappings.costCodeToItems.size,
+                vendorToItems: dependencyMappings.vendorToItems.size,
+                jobToCustomers: dependencyMappings.jobToCustomers.size,
+                totalVendors: dependencyMappings.allVendors.size,
+                totalJobs: dependencyMappings.allJobs.size,
+                totalCustomers: dependencyMappings.allCustomers.size,
+                totalCostCodes: dependencyMappings.allCostCodes.size,
+                totalItems: dependencyMappings.allItemNames.size
+            });
+        }
+
+        // Get dependent options for plan selection
+        function getOptionsForPlan(planName) {
+            if (dependencyMappings.planToOptions.has(planName)) {
+                return Array.from(dependencyMappings.planToOptions.get(planName)).sort();
+            }
+            return Array.from(dependencyMappings.allOptions || []).sort();
+        }
+
+        // Get dependent items for cost code
+        function getItemsForCostCode(costCode) {
+            if (dependencyMappings.costCodeToItems.has(costCode)) {
+                return Array.from(dependencyMappings.costCodeToItems.get(costCode)).sort();
+            }
+            return Array.from(dependencyMappings.allItemNames).sort();
+        }
+
+        // Get dependent items for vendor
+        function getItemsForVendor(vendorName) {
+            if (dependencyMappings.vendorToItems.has(vendorName)) {
+                return Array.from(dependencyMappings.vendorToItems.get(vendorName)).sort();
+            }
+            return Array.from(dependencyMappings.allItemNames).sort();
+        }
+
+        // Get dependent customers for job
+        function getCustomersForJob(jobName) {
+            if (dependencyMappings.jobToCustomers.has(jobName)) {
+                return Array.from(dependencyMappings.jobToCustomers.get(jobName)).sort();
+            }
+            return Array.from(dependencyMappings.allCustomers).sort();
+        }
+
+        // Update row count display
+        function updateRowCount() {
+            const totalRows = gridApi.getDisplayedRowCount();
+            const selectedRows = gridApi.getSelectedRows().length;
+            const filteredRows = gridApi.getModel().getRowCount();
+            
+            document.getElementById('rowCount').textContent = totalRows;
+            document.getElementById('selectedCount').textContent = selectedRows;
+            document.getElementById('filteredCount').textContent = filteredRows;
+        }
+
+        // Duplicate selected rows function
+        function duplicateSelectedRows() {
+            const selectedRows = gridApi.getSelectedRows();
+            
+            if (selectedRows.length === 0) {
+                showStatusMessage('Please select a row to duplicate', 'warning');
+                return;
+            }
+            
+            if (selectedRows.length > 1) {
+                showStatusMessage('Please select only one row to duplicate', 'warning');
+                return;
+            }
+            
+            const originalRow = selectedRows[0];
+            
+            // Create a deep copy of the row
+            const duplicatedRow = JSON.parse(JSON.stringify(originalRow));
+            
+            // Generate unique ID for the duplicated row (for frontend only)
+            const duplicatedRowId = `duplicated_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            duplicatedRow.customRowId = duplicatedRowId;
+
+            // Mark this row as duplicated for blue highlighting
+            duplicatedRowIds.add(duplicatedRowId);
+
+            // Send duplicated row to backend for insertion
+            fetch('/api/comprehensive-takeoff-analysis/duplicate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(duplicatedRow)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Add duplicated row to the main grid data (not just the filtered view)
+                    const originalRowIndex = gridData.findIndex(row => 
+                        row.plan_full_name === originalRow.plan_full_name &&
+                        row.option_name === originalRow.option_name &&
+                        row.cost_code === originalRow.cost_code &&
+                        row.item_name === originalRow.item_name &&
+                        row.quantity === originalRow.quantity &&
+                        row.unit_price === originalRow.unit_price
+                    );
+                    
+                    if (originalRowIndex >= 0) {
+                        // Insert duplicated row right after the original in the main data
+                        gridData.splice(originalRowIndex + 1, 0, duplicatedRow);
+                    } else {
+                        // If we can't find the exact match, add to the end
+                        gridData.push(duplicatedRow);
+                    }
+                    
+                    // Re-apply the current filters to include the new duplicated row
+                    applyCustomFilters();
+                    
+                    showStatusMessage('Row duplicated and saved successfully - edit any field to remove blue highlighting', 'success');
+                    console.log('Row duplicated and saved:', duplicatedRowId);
+                } else {
+                    showStatusMessage('Failed to save duplicated row: ' + (result.message || 'Unknown error'), 'danger');
+                }
+            })
+            .catch(err => {
+                showStatusMessage('Error saving duplicated row: ' + err, 'danger');
+            });
+        }
+
+        // Delete selected row
+        function deleteSelectedRow() {
+            const selectedRows = gridApi.getSelectedRows();
+            if (selectedRows.length === 0) {
+                showStatusMessage('Please select a row to delete', 'warning');
+                return;
+            }
+            if (selectedRows.length > 1) {
+                showStatusMessage('Please select only one row to delete', 'warning');
+                return;
+            }
+            const row = selectedRows[0];
+            if (!confirm('Are you sure you want to delete this row? This action cannot be undone.')) {
+                return;
+            }
+            // Send delete request to backend using takeoff_id
+            fetch('/api/comprehensive-takeoff-analysis/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    takeoff_id: row.takeoff_id
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Remove from gridData and re-apply filters
+                    gridData = gridData.filter(r => r.takeoff_id !== row.takeoff_id);
+                    applyCustomFilters();
+                    showStatusMessage('Row deleted successfully', 'success');
+                } else {
+                    showStatusMessage('Failed to delete row: ' + (result.message || 'Unknown error'), 'danger');
+                }
+            })
+            .catch(err => {
+                showStatusMessage('Error deleting row: ' + err, 'danger');
+            });
+        }
+
+        // Handle cell value changes
+        function onCellValueChanged(event) {
+            const { data, colDef, newValue, oldValue } = event;
+            
+            // Remove blue highlighting if this is a duplicated row being edited
+            if (data && data.customRowId && duplicatedRowIds.has(data.customRowId)) {
+                duplicatedRowIds.delete(data.customRowId);
+                // Refresh the row to remove blue styling
+                gridApi.refreshRows({ rowNodes: [event.node] });
+                console.log('Removed blue highlighting from edited duplicated row:', data.customRowId);
+            }
+            
+            // Check if the change affects extended price calculation
+            const pricingFields = ['quantity', 'unit_price', 'price_factor'];
+            if (pricingFields.includes(colDef.field)) {
+                // Force recalculation of extended price
+                gridApi.refreshCells({
+                    rowNodes: [event.node],
+                    columns: ['extended_price'],
+                    force: true
+                });
+                
+                // Update summary card with current data
+                const currentData = [];
+                gridApi.forEachNodeAfterFilterAndSort(node => {
+                    currentData.push(node.data);
+                });
+                updateSummaryCard(currentData);
+                
+                showStatusMessage(`Updated ${colDef.headerName}: ${oldValue} → ${newValue}`, 'success');
+            } else {
+                showStatusMessage(`Updated ${colDef.headerName}`, 'success');
+            }
+            
+            // Mark the row as modified (visual indicator)
+            event.node.setRowHeight(undefined);
+            
+            console.log(`Cell changed: ${colDef.field} from "${oldValue}" to "${newValue}"`);
+        }
+
+        // Status message function
+        function showStatusMessage(message, type) {
+            const alertClass = `alert-${type}`;
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            const container = document.getElementById('statusMessages');
+            container.innerHTML = alertHtml;
+            
+            // Auto-dismiss success messages
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    const alert = container.querySelector('.alert');
+                    if (alert) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
