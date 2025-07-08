@@ -1,7 +1,7 @@
 import pandas as pd
 
-# Read the Excel file
-df = pd.read_excel('PlanElevOptions/Croydonette_B_Basement_Base Home.xlsx')
+# [NOTE] PlanElevOptions is now archived. Update path to archived location.
+df = pd.read_excel('../archived/cleanup_2025/PlanElevOptions/Croydonette_B_Basement_Base Home.xlsx')
 
 print('COLUMNS:')
 for i, col in enumerate(df.columns):
@@ -9,4 +9,4 @@ for i, col in enumerate(df.columns):
 
 print(f'\nTotal rows: {len(df)}')
 print('\nFirst row values:')
-print(df.iloc[0]) 
+print(df.iloc[0])

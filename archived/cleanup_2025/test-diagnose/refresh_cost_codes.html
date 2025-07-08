@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cost Codes Refresh Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 10px 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            overflow: auto;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+        }
+        .response {
+            margin-top: 20px;
+        }
+        .log {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #555;
+        }
+        .status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .error {
+            color: #D32F2F;
+        }
+        .success {
+            color: #388E3C;
+        }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cost Codes Refresh Tool</h1>
+        <div class="actions">
+            <button id="fetchData">🔄 Fetch Data (Force Refresh)</button>
+            <button id="clearCache">🧹 Clear Local Storage Cache</button>
+            <button id="refreshPage">📄 Refresh Page</button>
+            <button id="openConsoleScript">🛠️ Copy Debug Script</button>
+        </div>
+        
+        <div class="status" id="status"></div>
+        
+        <div class="log">
+            <strong>Log:</strong>
+            <div id="log"></div>
+        </div>
+        
+        <div class="response">
+            <strong>Response:</strong>
+            <pre id="response"></pre>
+        </div>
+    </div>
+
+    <script>
+        // Helper functions
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML = `[${timestamp}] ${message}<br>` + logDiv.innerHTML;
+        }
+        
+        function setStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = isError ? 'status error' : 'status success';
+        }
+        
+        function formatJSON(data) {
+            try {
+                return JSON.stringify(data, null, 2);
+            } catch (e) {
+                return String(data);
+            }
+        }
+        
+        // Event handlers
+        document.getElementById('fetchData').addEventListener('click', async function() {
+            try {
+                setStatus('Fetching data from API...');
+                log('Sending request to /api/cost-codes-with-groups with no-cache parameter');
+                
+                const start = performance.now();
+                const response = await fetch('/api/cost-codes-with-groups?no-cache=true&t=' + Date.now());
+                const elapsed = ((performance.now() - start) / 1000).toFixed(2);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                document.getElementById('response').textContent = formatJSON(data);
+                
+                setStatus(`Successfully fetched ${data.length} records in ${elapsed}s`);
+                log(`Received ${data.length} records in ${elapsed} seconds`);
+                
+                // Update the page's grid if it exists
+                if (window.parent && window.parent.gridApi) {
+                    log('Updating parent window grid with fresh data');
+                    window.parent.gridApi.setGridOption('rowData', data);
+                    window.parent.originalData = data;
+                    window.parent.showStatus(`Loaded ${data.length} cost codes successfully`, 'success');
+                }
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, true);
+                log(`Error: ${error.message}`);
+                document.getElementById('response').textContent = error.stack || error.message;
+            }
+        });
+        
+        document.getElementById('clearCache').addEventListener('click', function() {
+            try {
+                localStorage.removeItem('cost_codes_data_cache');
+                setStatus('Local storage cache cleared');
+                log('Removed cost_codes_data_cache from localStorage');
+                
+                // Clear parent window cache if available
+                if (window.parent && window.parent.localStorage) {
+                    window.parent.localStorage.removeItem('cost_codes_data_cache');
+                    log('Cleared parent window localStorage cache as well');
+                }
+            } catch (error) {
+                setStatus(`Error clearing cache: ${error.message}`, true);
+                log(`Error clearing cache: ${error.message}`);
+            }
+        });
+        
+        document.getElementById('refreshPage').addEventListener('click', function() {
+            log('Refreshing page...');
+            window.location.reload();
+        });
+        
+        document.getElementById('openConsoleScript').addEventListener('click', function() {
+            const script = `// Cost Codes Debug Script
+// Paste this in your browser console when on the cost codes page
+
+// First, clear any existing cache
+localStorage.removeItem('cost_codes_data_cache');
+console.log('🧹 Local storage cache cleared');
+
+// Force a fresh data fetch
+(async function() {
+  console.log('🔄 Fetching fresh data from API...');
+  try {
+    const start = performance.now();
+    const response = await fetch('/api/cost-codes-with-groups?no-cache=true&t=' + Date.now());
+    
+    if (!response.ok) {
+      throw new Error(\`HTTP error! status: \${response.status}\`);
+    }
+    
+    const data = await response.json();
+    const elapsed = ((performance.now() - start) / 1000).toFixed(2);
+    
+    console.log(\`✅ Received \${data.length} records in \${elapsed}s\`);
+    
+    // Update grid if it exists
+    if (typeof gridApi !== 'undefined' && gridApi) {
+      console.log('📊 Updating grid with fresh data...');
+      gridApi.setGridOption('rowData', data);
+      originalData = data;
+    } else {
+      console.warn('⚠️ Grid API not found - refresh the page after running this script');
+    }
+  } catch (error) {
+    console.error('❌ Error:', error);
+  }
+})();`;
+
+            // Create textarea and copy to clipboard
+            const textarea = document.createElement('textarea');
+            textarea.value = script;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            setStatus('Debug script copied to clipboard!');
+            log('Debug script copied to clipboard - paste it in the browser console');
+        });
+
+        // Initial load
+        window.addEventListener('load', function() {
+            log('Tool initialized. Use the buttons above to diagnose and fix issues.');
+        });
+    </script>
+</body>
+</html>

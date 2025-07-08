@@ -1,20 +1,12 @@
 #!/bin/bash
 
 # Start the Web UI for PostgreSQL Takeoff Database
-# Make sure PostgreSQL database is running first
+# Connects to Hostinger PostgreSQL database at 31.97.137.221
 
 echo "🚀 Starting PostgreSQL Takeoff Database Web UI..."
 echo ""
-
-# Check if PostgreSQL is running
-if ! docker ps | grep -q takeoff_postgres; then
-    echo "❌ PostgreSQL database container not found!"
-    echo "   Please start the database first:"
-    echo "   cd /root/postgresql-docker && ./start.sh"
-    exit 1
-fi
-
-echo "✅ PostgreSQL database is running"
+echo "🌐 Database: 31.97.137.221:5432/takeoff_pricing_db"
+echo ""
 
 # Install Python dependencies if needed
 if [ ! -d "venv" ]; then

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Database connection settings (matching docker-compose.yml)
 DB_CONFIG = {
-    'host': 'localhost',
+    'host': '127.0.0.1',
     'port': 5432,
     'database': 'takeoff_pricing_db',
     'user': 'Jon',

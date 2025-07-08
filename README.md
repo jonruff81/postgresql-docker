@@ -1,15 +1,33 @@
 # PostgreSQL Construction Takeoff System
 
-A comprehensive PostgreSQL-based system for managing construction takeoff pricing data with vendor management, historical price tracking, file attachments, and a full-featured web interface.
+A comprehensive PostgreSQL-based system for managing construction takeoff pricing data with vendor management, historical price tracking, file attachments, and a full-featured web interface. **Connected to live Hostinger PostgreSQL database.**
+
+## 📑 Table of Contents
+- [Current Status](#-current-status---production-ready)
+- [Web Interface Features](#-web-interface-features)
+- [Project Structure](#-project-structure)
+- [Database Architecture](#-database-architecture)
+- [Quick Start](#-quick-start)
+- [Web Interface Guide](#-web-interface-guide)
+- [Current Data Status](#-current-data-status-live-from-hostinger)
+- [System Operations](#-system-operations)
+- [Business Intelligence Views](#-business-intelligence-views)
+- [API Endpoints](#-api-endpoints)
+- [Development Workflow](#-development-workflow)
+- [Recent Enhancements](#-recent-enhancements)
+- [Next Steps](#-next-steps)
+- [Documentation](#-documentation)
+- [Security Considerations](#-security-considerations)
+- [Core Tech Stack](#-core-tech-stack)
 
 ## 🚀 Current Status - PRODUCTION READY
 
-✅ **Database Schema Complete** - Full PostgreSQL schema with 20 tables and views  
-✅ **Data Migration Complete** - SF fields properly moved to plan_options table  
-✅ **Vendor Pricing System** - Historical tracking with 229 pricing records from 62 vendors  
-✅ **Data Loader Working** - Enhanced loader handles all 61 Excel columns  
-✅ **Web UI Complete** - Full CRUD interface with dashboard, smart editing, and API  
-✅ **File Organization Complete** - Clean, organized project structure  
+✅ **Database Schema Complete** - Full PostgreSQL schema with 26 tables and views
+✅ **Hostinger Integration** - Live connection to PostgreSQL database at 31.97.137.221:5432
+✅ **Vendor Pricing System** - Historical tracking with 229 pricing records from 62 vendors
+✅ **Data Loader Working** - Enhanced loader handles all 61 Excel columns
+✅ **Web UI Complete** - Full CRUD interface with dashboard, smart editing, and API
+✅ **File Organization Complete** - Clean, organized project structure
 
 ## 🌐 Web Interface Features
 
@@ -18,7 +36,9 @@ A comprehensive PostgreSQL-based system for managing construction takeoff pricin
 - **🎯 Smart Takeoffs**: Advanced takeoff editing with inline updates and meaningful names
 - **📈 Enhanced Views**: Filtered takeoff analysis with cost summaries
 - **📝 Duplicate & Delete Rows**: Easily duplicate or delete takeoff records directly from the Comprehensive Takeoff Analysis grid
-- **📥 Bulk Import**: CSV import functionality for batch data loading
+- **📝 Product Duplication**: Duplicating a product creates a new item with a unique name (appends " (Copy)", " (Copy 2)", etc. if needed) and links the product to the correct cost code. Cost code assignment is always respected and saved.
+- **📥 Bulk Import/Export/Template**: Every AG-Grid view supports import (Excel/CSV), export (Excel/CSV), and "Download Template" (Excel/CSV with correct headers for that grid).
+- **🔑 AG-Grid License**: AG-Grid Enterprise license key is injected from Flask config/environment and never hardcoded; always referenced securely in JS.
 - **🔍 Search & Filter**: Powerful search across all data fields
 - **📱 Responsive Design**: Works on desktop, tablet, and mobile
 
@@ -26,58 +46,44 @@ A comprehensive PostgreSQL-based system for managing construction takeoff pricin
 
 ```
 postgresql-docker/
-├── 🐳 Docker & Database
-│   ├── docker-compose.yml          # PostgreSQL container configuration
-│   ├── start.sh                    # Quick database startup
-│   └── init/complete_schema.sql    # Complete database schema
-├── 
+├── 🗄️ Database Configuration
+│   ├── config.py                   # Hostinger database configuration
+│   ├── init/complete_schema.sql    # Complete database schema
+│   └── migrations/                 # SQL migration scripts
+├──
 ├── 🌐 Web Interface
 │   ├── web_ui/
 │   │   ├── app.py                  # Main Flask application
-│   │   ├── alt_server.py           # Alternative server config
 │   │   ├── start_ui.sh             # Web UI startup script
 │   │   ├── requirements.txt        # Python dependencies
 │   │   ├── templates/              # HTML templates
 │   │   │   ├── dashboard.html      # Main dashboard
-│   │   │   ├── table_view.html     # Table browsing
-│   │   │   ├── smart_takeoffs.html # Advanced takeoff editing
-│   │   │   ├── takeoffs_enhanced.html # Filtered analysis
-│   │   │   ├── edit_record.html    # Record editing
-│   │   │   ├── create_record.html  # Record creation
-│   │   │   ├── bulk_import.html    # CSV import
-│   │   │   └── debug.html          # Development tools
+│   │   │   ├── *_grid.html         # AG-Grid interfaces
+│   │   │   └── base.html           # Common template
 │   │   └── static/                 # CSS, JS, images
-├── 
+├──
 ├── 🔧 Core Scripts
 │   ├── scripts/
 │   │   ├── new_data_loader.py      # Main Excel data loader
-│   │   ├── setup_database.sh       # Database initialization
-│   │   ├── rebuild_database.sh     # Complete rebuild
 │   │   ├── backup.sh              # Database backup utility
-│   │   └── consolidated-commands.sh # Batch operations
-├── 
-├── 🗄️ Database Evolution
-│   ├── migrations/                 # SQL migration scripts (chronological)
-│   │   ├── 001_update_schema.sql   # Initial schema updates
-│   │   ├── 002_migrate_sf_fields.sql # SF field migration
-│   │   ├── 003_vendor_pricing_enhancement.sql # Vendor pricing
-│   │   └── 004_populate_vendor_pricing.sql # Initial pricing data
+│   │   └── bulk_product_vendor_import.py # Bulk import tools
+├──
+├── 🌐 Connection Testing
+│   ├── [archived/cleanup_2025/test-diagnose/](archived/cleanup_2025/test-diagnose/) (archived)
+│   │   ├── test_connection.py      # Database connection test (archived)
+│   │   ├── run_hostinger.bat       # Quick start script (archived)
+│   │   ├── HOSTINGER_SETUP.md      # Complete setup guide (archived)
+│   │   ├── HOSTINGER_DATABASE_CHECKLIST.md # Diagnostic checklist (archived)
+│   │   └── HOSTINGER_FIREWALL_SETUP.md # Firewall configuration (archived)
 ├── 
 ├── 📊 Source Data
-│   ├── PlanElevOptions/           # Excel files (21 files)
-│   │   ├── Barringer_A_Crawl_*.xlsx
-│   │   ├── Calderwood_A_Basement_*.xlsx
-│   │   ├── Croydonette_*_*.xlsx
-│   │   ├── Oxford_A_Basement_*.xlsx
-│   │   ├── Sandbrook_B_Crawl_*.xlsx
-│   │   └── Winchester_A_Basement_*.xlsx
+│   ├── [archived/cleanup_2025/PlanElevOptions/](archived/cleanup_2025/PlanElevOptions/) (archived Excel files)
 ├── 
 ├── 🛠️ Utilities
 │   ├── utils/
 │   │   ├── examine_excel.py        # Excel file inspection
 │   │   ├── examine_excel_simple.py # Simple Excel analysis
-│   │   ├── file-optimizer-agent.py # File optimization
-│   │   └── simple-file-optimizer.py # Basic optimization
+│   │   └── file optimization tools
 ├── 
 ├── 📚 Documentation
 │   ├── README.md                   # This file (technical overview)
@@ -85,19 +91,22 @@ postgresql-docker/
 │   └── DATABASE_README.md          # Detailed database docs
 ├── 
 ├── 🗂️ Archive & Logs
-│   ├── archived/                   # Historical files
-│   │   ├── old_loaders/           # Previous loader versions
-│   │   └── verification_queries.sql
-│   ├── logs/                      # Application logs
-│   └── backups/                   # Timestamped backups
+│   ├── archived/                   # Historical files and all deprecated/test/backup files
+│   ├── [archived/cleanup_2025/logs/](archived/cleanup_2025/logs/) (archived application logs)
+│   ├── [archived/cleanup_2025/backups/](archived/cleanup_2025/backups/) (archived backups)
 ```
 
 ## 🏗️ Database Architecture
 
-### Core Tables (20 total)
+### Database Connection
+- **🌐 Hostinger PostgreSQL**: 31.97.137.221:5432/takeoff_pricing_db
+- **🔐 Authentication**: User 'Jon' with environment-based password
+- **📡 Connection**: Direct TCP connection to live database
+
+### Core Tables (26 total)
 - **plans** (6) → **plan_elevations** (7) → **plan_options** (22) → **jobs** (21) → **takeoffs** (2,321)
 - **vendors** (62) → **vendor_pricing** (229) → **vendor_quotes** → **quote_line_items**
-- **cost_groups** → **cost_codes** → **items** → **products**
+- **cost_groups** → **cost_codes** (90) → **items** → **products**
 - **divisions** → **communities**
 - **pricing_attachments** (file management)
 
@@ -110,30 +119,22 @@ postgresql-docker/
 
 ## 🚀 Quick Start
 
-### 1. Start the System
+### 1. Start the Application
 ```bash
-# Start PostgreSQL database
-./start.sh
-
-# Start Web UI (in separate terminal)
+# Quick start with batch file
+# (Old quick start scripts are now archived. Use the web interface directly.)
 cd web_ui
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python3 app.py
+python app.py
 ```
 
 ### 2. Access the System
 - **Web Interface**: http://localhost:5000
-- **Database Direct**: `docker exec -it takeoff_postgres psql -U Jon -d takeoff_pricing_db`
+- **Database Direct**: `psql -h 31.97.137.221 -p 5432 -U Jon -d takeoff_pricing_db`
 
-### 3. Load Data (if needed)
+### 3. Test Connection
 ```bash
-# Load all Excel files
-python3 scripts/new_data_loader.py
-
-# Load specific files
-python3 scripts/new_data_loader.py PlanElevOptions Winchester
+# Test database connection
+# (Old test scripts are now archived. Use the web interface for connection status.)
 ```
 
 ## 🌐 Web Interface Guide
@@ -141,70 +142,97 @@ python3 scripts/new_data_loader.py PlanElevOptions Winchester
 ### Main Dashboard
 Navigate to http://localhost:5000 to see:
 - **Table Overview**: All database tables with record counts
-- **Quick Actions**: Direct links to table management
+- **AG-Grid Interfaces**: Modern data grids for each table
 - **System Status**: Database connection and health
 
-### Smart Takeoffs Management
-- **Smart Takeoffs** (`/takeoffs/smart`): Advanced editing with dropdowns
-- **Enhanced Takeoffs** (`/takeoffs/enhanced`): Filtering and cost analysis
-- **Table View** (`/table/takeoffs`): Basic table browsing
+### Key Interfaces
+- **Plans Grid**: Plan management with elevation/option counts
+- **Products Grid**: Product catalog with vendor pricing
+- **Vendor Pricing Grid**: Price management with history
+- **Comprehensive Takeoff Grid**: Complete takeoff analysis
+- **Cost Codes Grid**: Cost code management with groups
+- **Items Grid**: Item management with enterprise features
+- **Quotes Grid**: Quote management system
+- **Plan Options Grid**: Plan option management
 
 ### Key Features
-1. **Inline Editing**: Click any field to edit directly
-2. **Smart Dropdowns**: Meaningful names instead of IDs
-3. **Real-time Updates**: Changes saved automatically
-4. **Search & Filter**: Find records quickly
-5. **Bulk Operations**: Import CSV data
+1. **AG-Grid Integration**: Professional data grids with sorting, filtering, editing, and Excel-like features
+2. **Inline Editing**: Click any field to edit directly; changes are saved to the live Hostinger PostgreSQL database
+3. **Smart Dropdowns**: Meaningful names instead of IDs
+4. **Real-time Updates**: All changes are saved directly to production (no local/dev DB)
+5. **Master-Detail Views**: Related data shown in detail panels (e.g., vendor pricing for products)
+6. **Bulk Operations**: Import, export, and template download for every grid (Excel/CSV)
+7. **AG-Grid License**: License key is always injected from backend config, never hardcoded
+8. **Product Duplication**: Duplicating a product creates a new item with a unique name and links to the correct cost code; cost code is always saved
 
-## 📊 Current Data Status
+## 📊 Current Data Status (Live from Hostinger)
 
 ### Loaded Data Summary:
 - **6 Plans**: Barringer, Calderwood, Croydonette, Oxford, Sandbrook, Winchester
 - **7 Elevations**: Various A/B/C elevations with Basement/Crawl foundations
 - **22 Options**: BaseHome, Design Options, Structural, Finished Basement, etc.
 - **21 Jobs**: Template jobs for each plan/elevation/option combination
-- **2,321 Takeoff Records**: Detailed cost breakdowns
+- **2,321+ Takeoff Records**: Detailed cost breakdowns (live data)
 - **62 Vendors**: From A-Sani-Can Service to Wright Bros Concrete
-- **229 Pricing Records**: Current vendor pricing with history
+- **90 Cost Codes**: Complete cost code structure
+- **26 Database Tables**: Full schema with views and relationships
 
-### Pricing Analysis:
-- **Standard Pricing**: 179 records, avg $1,481.63
-- **Quote Pricing**: 50 records, avg $14,924.95
-- **Price Range**: $0.15 - $108,252.00
+### Database Connection Status:
+- **✅ Hostinger**: Connected to 31.97.137.221:5432/takeoff_pricing_db
+- **✅ Connection Testing**: Automated via test_connection.py
+- **✅ Live Data**: Real-time access to production database
 
 ## 🔧 System Operations
 
-### Database Management
-```bash
-# Rebuild from scratch
-scripts/rebuild_database.sh
+### Product Duplication & Cost Code Assignment
 
-# Setup fresh database
-scripts/setup_database.sh
+- When duplicating a product, the system:
+  - Creates a new item in the items table with the same name as the original, but ensures uniqueness by appending " (Copy)", " (Copy 2)", etc. if needed.
+  - Links the new product to this new item.
+  - Assigns the selected cost code to the new item (creating the cost code if it does not exist).
+  - All changes are saved directly to the live Hostinger PostgreSQL database.
 
-# Backup database
-scripts/backup.sh
-```
+### AG-Grid Import/Export/Template
+
+- Every AG-Grid view (products, items, cost codes, etc.) supports:
+  - **Export**: Download current grid data as Excel or CSV.
+  - **Import**: Upload Excel/CSV to update/add rows.
+  - **Download Template**: Download an Excel/CSV template with the correct headers for that grid.
+- All import/export/template endpoints are implemented in Flask and connected to the live database.
+
+### AG-Grid License Key
+
+- The AG-Grid Enterprise license key is always injected from Flask config/environment and referenced in the JS block.
+- The license key is never hardcoded in the frontend.
 
 ### Excel Data Loading
 ```bash
 # Main data loader with vendor pricing integration
-python3 scripts/new_data_loader.py [directory] [file_patterns...]
+python scripts/new_data_loader.py [directory] [file_patterns...]
+
+# Bulk vendor pricing import
+python scripts/bulk_product_vendor_import.py products.csv vendor_pricing.csv
 
 # Examine Excel file structure
-python3 utils/examine_excel_simple.py "path/to/file.xlsx"
+python utils/examine_excel_simple.py "path/to/file.xlsx"
+```
+
+### Database Management
+```bash
+# Backup database to local file
+# (Backup scripts are now archived. Use your preferred backup method or restore from archived/cleanup_2025/backups/ if needed.)
 ```
 
 ### Web UI Management
 ```bash
 # Start development server
-cd web_ui && python3 app.py
-
-# Start with alternative configuration
-cd web_ui && python3 alt_server.py
+cd web_ui && python app.py
 
 # Install/update dependencies
 pip install -r web_ui/requirements.txt
+
+# Start with shell script
+web_ui/start_ui.sh
 ```
 
 ## 📈 Business Intelligence Views
@@ -212,24 +240,25 @@ pip install -r web_ui/requirements.txt
 ### Cost Analysis Queries
 ```sql
 -- Plan cost analysis
-SELECT * FROM takeoff.v_job_cost_analysis WHERE plan_name = 'Winchester';
+SELECT * FROM takeoff.v_comprehensive_takeoff_analysis WHERE plan_name = 'Winchester';
 
 -- Vendor pricing catalog
 SELECT * FROM takeoff.v_current_vendor_pricing ORDER BY vendor_name;
 
--- Price history analysis
-SELECT * FROM takeoff.v_price_history WHERE price_change_percent IS NOT NULL;
+-- Cost codes with groups
+SELECT * FROM takeoff.v_cost_codes_with_groups ORDER BY cost_code;
 ```
 
 ### Web Interface Analysis
 - **Dashboard**: Real-time table statistics
-- **Enhanced Takeoffs**: Filtered cost analysis with totals
-- **Smart Views**: Meaningful data relationships
+- **AG-Grid Views**: Advanced filtering and analysis
+- **Master-Detail**: Related data exploration
 
 ## 🔌 API Endpoints
 
-The web interface includes REST API endpoints:
+The web interface includes comprehensive REST API endpoints:
 
+### Table Data APIs
 ```bash
 # Get all tables
 GET /api/tables
@@ -237,17 +266,60 @@ GET /api/tables
 # Get table structure
 GET /api/table/{table_name}/structure
 
-# Update takeoff field
-POST /api/takeoffs/{takeoff_id}/update
+# Get specific table data
+GET /api/plans
+GET /api/plan-options
+GET /api/products
+GET /api/vendor-pricing
+GET /api/cost-codes-with-groups
+GET /api/qty-takeoffs
+GET /api/quotes
+GET /api/items
+```
 
-# Get lookup data
-GET /api/lookup-data
+### CRUD Operations
+```bash
+# Create records
+POST /api/plans
+POST /api/plan-options
+POST /api/products
+POST /api/vendor-pricing
+POST /api/qty-takeoffs
+POST /api/quotes
+POST /api/items
 
-# Create takeoff
-POST /api/takeoffs/create
+# Update records
+PUT /api/plans/{plan_id}
+PUT /api/plan-options/{option_id}
+PUT /api/products/{product_id}
+PUT /api/vendor-pricing/{pricing_id}
+PUT /api/qty-takeoffs/{takeoff_id}
+PUT /api/quotes/{quote_id}
+PUT /api/items/{item_id}
 
-# Delete takeoff
-DELETE /api/takeoffs/{takeoff_id}/delete
+# Delete records
+DELETE /api/plans/{plan_id}
+DELETE /api/plan-options/{option_id}
+DELETE /api/products/{product_id}
+DELETE /api/vendor-pricing/{pricing_id}
+DELETE /api/qty-takeoffs/{takeoff_id}
+DELETE /api/quotes/{quote_id}
+DELETE /api/items/{item_id}
+```
+
+### Bulk Operations
+```bash
+# Bulk updates
+POST /api/cost-codes-with-groups/bulk-update
+POST /api/quotes/bulk-update
+POST /api/items/bulk-update
+POST /api/qty-takeoffs/bulk-update
+
+# Import operations
+POST /api/products/import
+POST /api/items/import
+POST /api/qty-takeoffs/import
+POST /api/quotes/import
 ```
 
 ## 🔄 Development Workflow
@@ -257,17 +329,26 @@ DELETE /api/takeoffs/{takeoff_id}/delete
 - **Sync Status**: Fully synchronized with GitHub
 - **Backups**: Timestamped backups before major changes
 
-### File Organization
-- All virtual environment files properly excluded
-- Clean repository structure
-- Comprehensive documentation
+### Environment Setup
+```bash
+# Install Python dependencies
+pip install -r web_ui/requirements.txt
+
+# Set up database connection (environment variable)
+# Database password should be set in environment or config
+```
 
 ## 🆕 Recent Enhancements
 
-- **Duplicate Row**: You can now duplicate any row in the Comprehensive Takeoff Analysis grid. The new row is saved to the database and persists after refresh.
-- **Delete Row**: Any row (including duplicated ones) can be deleted from the grid and database.
-- **Backend Logic**: Duplicating a row creates a new takeoff record, preserving all fields that exist in the `takeoff.takeoffs` table (e.g., notes, room, spec_name). Fields joined from other tables (plan name, option, cost code, etc.) are not directly settable.
-- **Known Limitation**: Only fields present in the `takeoff.takeoffs` table are saved when duplicating. Other fields are joined from related tables and cannot be set by duplication alone.
+- **AG-Grid Integration**: Professional data grids with enterprise features
+- **Master-Detail Views**: Product vendor pricing shown in detail panels
+- **Bulk Operations**: Import/export and bulk editing capabilities
+- **Responsive Design**: Mobile-friendly interface
+- **API Expansion**: Comprehensive REST API for all operations
+- **Real-time Updates**: Live data synchronization with database
+- **Enhanced Takeoffs View**: Advanced filtering and analysis capabilities
+- **UI Performance Improvements**: Reduced page flashing and optimized caching
+- **Plan Options Management**: New dedicated interface for plan options
 
 ## 📝 Next Steps
 
@@ -292,33 +373,57 @@ DELETE /api/takeoffs/{takeoff_id}/delete
    - Automated data validation
    - Advanced search capabilities
 
-## 🐳 Docker Configuration
-
-The system runs in Docker with:
-- **PostgreSQL 13** with persistent storage
-- **Custom Database**: takeoff_pricing_db
-- **Volume Mounting**: Data directory persistence
-- **Automated Backups**: Scheduled backup system
-- **Network**: Isolated container networking
-
 ## 📚 Documentation
 
 - **README.md**: Technical overview (this file)
 - **USER_README.md**: User-friendly guide for end users
 - **DATABASE_README.md**: Detailed database schema documentation
+- **ENHANCED_TAKEOFFS_README.md**: Guide for the enhanced takeoffs view
+- **UI_PERFORMANCE_README.md**: Documentation on UI performance improvements
 - **migrations/**: Chronological database evolution
-- **archived/**: Historical files and verification queries
+- **archived/**: Historical files, deprecated/test/backup files, and verification queries
 
-## 🔒 Security Considerations
+---
 
-- Database credentials stored in configuration
-- Web UI secret key (change for production)
+## 🗃️ Archived and Deprecated Files
+
+The following files and folders have been archived for historical reference and are no longer part of the active system:
+
+- **archived/cleanup_2025/test-diagnose/**: All connection testing and setup scripts
+- **archived/cleanup_2025/backups/**: All backup scripts and timestamped backups
+- **archived/cleanup_2025/logs/**: Application logs
+- **archived/cleanup_2025/archived_old_views/**: Deprecated HTML views
+- **archived/cleanup_2025/PlanElevOptions/**: All Excel source data files
+- **archived/cleanup_2025/bulk_product_vendor_import.py**: Old bulk import tools
+- **archived/cleanup_2025/consolidated-commands.sh**: Batch operation scripts
+- **archived/cleanup_2025/new_data_loader.py**: Old data loader scripts
+- **archived/old_loaders/**: Previous data loader scripts
+- **archived/setup-optimizer.sh**: Old optimizer setup script
+
+To restore any file or folder, simply copy it from the appropriate path under `archived/cleanup_2025/` back to your working directory.
+
+
+- Database credentials managed through environment variables
 - SQL injection protection via parameterized queries
 - Input validation and sanitization
+- Secure connection to Hostinger database
+
+## 🛠️ Core Tech Stack
+
+- **Backend**: Python 3.x with Flask web framework
+- **Database**: PostgreSQL 13+ (hosted on Hostinger)
+- **Frontend**: HTML5, CSS3, JavaScript with AG-Grid Enterprise
+- **Data Processing**: Pandas for Excel/CSV handling
+- **API**: RESTful API with JSON responses
+- **Deployment**: Local development with remote database connection
+- **Containerization**: Docker support for local development
+- **Version Control**: Git with GitHub integration
+- **Testing**: Python unittest and manual verification
+- **Documentation**: Markdown-based documentation
 
 ---
 
 **🎯 Production-Ready Construction Takeoff System**  
 *Database ✓ | Web Interface ✓ | API ✓ | Documentation ✓*
 
-**Quick Access**: Start with `./start.sh` then visit http://localhost:5000
+**Quick Access**: Visit http://localhost:5000 after starting the web interface.

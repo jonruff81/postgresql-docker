@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% block title %}Vendor Pricing Grid{% endblock %}
+{% block page_title %}💰 Vendor Pricing Grid{% endblock %}
+
+{% block toolbar_right %}
+<a href="/" class="btn btn-outline-secondary">← Back to Dashboard</a>
+<button type="button" class="btn btn-warning" onclick="refreshGrid()">🔄 Refresh</button>
+<button type="button" class="btn btn-info" onclick="exportToCsv()">📊 Export CSV</button>
+<button type="button" class="btn btn-success" onclick="exportToExcel()">📈 Export Excel</button>
+<button type="button" class="btn btn-outline-primary" onclick="showBulkImportModal()">📥 Bulk Import</button>
+<button type="button" class="btn btn-outline-info" onclick="showQuickStats()">📊 Quick Stats</button>
+<button type="button" class="btn btn-outline-success" onclick="downloadTemplate('csv')">⬇️ Download Template (CSV)</button>
+<button type="button" class="btn btn-outline-success" onclick="downloadTemplate('excel')">⬇️ Download Template (Excel)</button>
+<button type="button" class="btn btn-outline-success" onclick="addRow()">➕ Add Row</button>
+<button type="button" class="btn btn-outline-secondary" onclick="duplicateRow()">⧉ Duplicate Row</button>
+<button type="button" class="btn btn-outline-danger" onclick="deleteRow()">🗑️ Delete Row</button>
+{% endblock %}
+
+{% block grid %}
+<div id="statusMessage" class="status-message"></div>
+<div id="vendorPricingGrid" style="height: 80vh; width: 100%;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    agGrid.LicenseManager.setLicenseKey("{{ ag_grid_license_key|e }}");
+
+    let gridApi;
+    let gridColumnApi;
+    let allData = [];
+    let productDescMap = {};
+
+    // Fetch product options by cost code (with product_id)
+    let productDescPromise = fetch('/api/products-by-cost-code')
+        .then(res => res.json())
+        .then(data => { productDescMap = data || {}; });
+
+    // Custom cell editor for Product Description dropdown (shows description, stores product_id)
+    function ProductDescriptionEditor() {}
+    ProductDescriptionEditor.prototype.init = function(params) {
+        this.params = params;
+        this.eInput = document.createElement('select');
+        this.eInput.className = 'form-select form-select-sm';
+        const costCode = params.data.cost_code;
+        const options = (costCode && productDescMap[costCode]) ? productDescMap[costCode] : [];
+        const blank = document.createElement('option');
+        blank.value = '';
+        blank.text = '';
+        this.eInput.appendChild(blank);
+        options.forEach(optObj => {
+            const opt = document.createElement('option');
+            opt.value = optObj.product_id;
+            opt.text = optObj.product_description;
+            if (optObj.product_id == params.data.product_id) opt.selected = true;
+            this.eInput.appendChild(opt);
+        });
+        this.eInput.value = params.data.product_id || '';
+        this.eInput.focus();
+    };
+    ProductDescriptionEditor.prototype.getGui = function() { return this.eInput; };
+    ProductDescriptionEditor.prototype.afterGuiAttached = function() { this.eInput.focus(); };
+    ProductDescriptionEditor.prototype.getValue = function() {
+        // Return just the product_description string for AG-Grid cell value
+        const selectedId = this.eInput.value;
+        const costCode = this.params.data.cost_code;
+        const options = (costCode && productDescMap[costCode]) ? productDescMap[costCode] : [];
+        const found = options.find(opt => String(opt.product_id) === String(selectedId));
+        // Also update the row data with product_id for backend update
+        if (this.params.data) {
+            this.params.data.product_id = selectedId;
+        }
+        return found ? found.product_description : '';
+    };
+    ProductDescriptionEditor.prototype.destroy = function() {};
+    ProductDescriptionEditor.prototype.isPopup = function() { return false; };
+
+    const columnDefs = [
+        {
+            headerName: "Cost Code",
+            field: "cost_code",
+            editable: true,
+            width: 150,
+            filter: 'agSetColumnFilter',
+            floatingFilter: true,
+            enableRowGroup: true,
+            filterParams: { buttons: ['reset', 'apply'], closeOnApply: true }
+        },
+        {
+            headerName: "Item Name",
+            field: "item_name",
+            editable: true,
+            width: 150,
+            filter: 'agSetColumnFilter',
+            floatingFilter: true,
+            enableRowGroup: true,
+            filterParams: { buttons: ['reset', 'apply'], closeOnApply: true }
+        },
+        {
+            headerName: "Product Description",
+            field: "product_description",
+            editable: true,
+            width: 180,
+            cellEditor: ProductDescriptionEditor,
+            cellEditorPopup: false,
+            filter: 'agSetColumnFilter',
+            floatingFilter: true,
+            enableRowGroup: true,
+            filterParams: { buttons: ['reset', 'apply'], closeOnApply: true }
+        },
+        {
+            headerName: "Vendor",
+            field: "vendor_name",
+            editable: true,
+            width: 150,
+            filter: 'agSetColumnFilter',
+            floatingFilter: true,
+            enableRowGroup: true,
+            filterParams: { buttons: ['reset', 'apply'], closeOnApply: true }
+        },
+        {
+            headerName: "Price",
+            field: "price",
+            editable: true,
+            width: 120,
+            cellClass: 'price-cell',
+            filter: 'agNumberColumnFilter',
+            floatingFilter: true,
+            enableValue: true,
+            valueFormatter: params => params.value != null ? '$' + Number(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4}) : ''
+        },
+        {
+            headerName: "Unit",
+            field: "unit_of_measure",
+            editable: true,
+            width: 100,
+            filter: 'agSetColumnFilter',
+            floatingFilter: true,
+            filterParams: { buttons: ['reset', 'apply'], closeOnApply: true }
+        },
+        {
+            headerName: "Price Type",
+            field: "price_type",
+            editable: true,
+            width: 120,
+            filter: 'agSetColumnFilter',
+            floatingFilter: true,
+            filterParams: { buttons: ['reset', 'apply'], closeOnApply: true }
+        },
+        {
+            headerName: "Notes",
+            field: "notes",
+            editable: true,
+            flex: 1,
+            tooltipField: "notes",
+            wrapText: true,
+            // autoHeight: true, // REMOVE to fix refresh bug
+            filter: 'agTextColumnFilter',
+            floatingFilter: true,
+            filterParams: { buttons: ['reset', 'apply'], closeOnApply: true }
+        }
+    ];
+
+    const gridOptions = {
+        columnDefs: columnDefs,
+        defaultColDef: {
+            sortable: true,
+            filter: true,
+            resizable: true,
+            editable: true,
+            floatingFilter: true,
+            enableRowGroup: true,
+            enableValue: true,
+            enablePivot: true
+        },
+        enableRangeSelection: true,
+        rowSelection: 'multiple',
+        animateRows: true,
+        // No row grouping
+        sideBar: {
+            toolPanels: [
+                {
+                    id: 'columns',
+                    labelDefault: 'Columns',
+                    labelKey: 'columns',
+                    iconKey: 'columns',
+                    toolPanel: 'agColumnsToolPanel'
+                },
+                {
+                    id: 'filters',
+                    labelDefault: 'Filters',
+                    labelKey: 'filters',
+                    iconKey: 'filter',
+                    toolPanel: 'agFiltersToolPanel'
+                }
+            ],
+            defaultToolPanel: 'columns'
+        },
+        statusBar: {
+            statusPanels: [
+                { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'left' },
+                { statusPanel: 'agSelectedRowCountComponent', align: 'left' },
+                { statusPanel: 'agAggregationComponent', align: 'right' }
+            ]
+        },
+        pagination: true,
+        paginationPageSize: 100,
+        onGridReady: onGridReady,
+        onCellValueChanged: onCellValueChanged,
+        getContextMenuItems: getContextMenuItems
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        productDescPromise.then(() => {
+            const gridDiv = document.querySelector('#vendorPricingGrid');
+            gridApi = agGrid.createGrid(gridDiv, gridOptions);
+        });
+    });
+
+    async function loadData() {
+        showStatus('Loading vendor pricing data...', 'info');
+        const response = await fetch('/api/vendor-pricing');
+        if (!response.ok) {
+            showStatus('Error loading data', 'error');
+            return;
+        }
+        const data = await response.json();
+        allData = data;
+        gridApi.setGridOption('rowData', data);
+        // Expand all groups by default
+        setTimeout(() => {
+            gridApi.forEachNode(node => {
+                if (node.group) node.setExpanded(true);
+            });
+        }, 100);
+        showStatus(`Loaded ${data.length} vendor pricing records`, 'success');
+    }
+
+    function onGridReady(params) {
+        gridApi = params.api;
+        gridColumnApi = params.columnApi;
+        loadData();
+    }
+
+    function onCellValueChanged(event) {
+        const { data, colDef, newValue, oldValue } = event;
+        if (JSON.stringify(newValue) === JSON.stringify(oldValue)) return;
+
+        if (colDef.field === "cost_code") {
+            data.product_description = '';
+            data.product_id = '';
+            gridApi.refreshCells({ rowNodes: [event.node], columns: ['product_description'], force: true });
+        }
+
+        // If Product Description changed, update product_id and send to backend
+        if (colDef.field === "product_description") {
+            // newValue is now a string (product_description), product_id is in data.product_id
+            if (!data.product_id) {
+                showStatus('Please select a valid product', 'warning');
+                return;
+            }
+            data.product_description = newValue;
+            fetch(`/api/vendor-pricing/${data.pricing_id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: data.product_id })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    showStatus('Product updated', 'success');
+                    refreshGrid();
+                } else {
+                    showStatus('Update failed: ' + (result.message || 'Unknown error'), 'error');
+                    event.node.setDataValue(colDef.field, oldValue);
+                }
+            })
+            .catch(() => {
+                showStatus('Error updating product', 'error');
+                event.node.setDataValue(colDef.field, oldValue);
+            });
+            return;
+        }
+
+        // Default: update other fields as before
+        fetch(`/api/vendor-pricing/${data.pricing_id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [colDef.field]: newValue })
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showStatus('Row updated', 'success');
+                refreshGrid();
+            } else {
+                showStatus('Update failed: ' + (result.message || 'Unknown error'), 'error');
+                event.node.setDataValue(colDef.field, oldValue);
+            }
+        })
+        .catch(() => {
+            showStatus('Error updating row', 'error');
+            event.node.setDataValue(colDef.field, oldValue);
+        });
+    }
+
+    function getContextMenuItems(params) {
+        const items = [
+            'copy', 'copyWithHeaders', 'paste',
+            'separator',
+            {
+                name: 'Duplicate Row',
+                action: () => duplicateRow(params.node)
+            },
+            {
+                name: 'Delete Row',
+                action: () => deleteRow(params.node)
+            }
+        ];
+        return items;
+    }
+
+    function refreshGrid() {
+        loadData();
+    }
+
+    function exportToCsv() {
+        gridApi.exportDataAsCsv({ fileName: 'vendor_pricing.csv' });
+        showStatus('Exported to CSV', 'success');
+    }
+
+    function exportToExcel() {
+        gridApi.exportDataAsExcel({ fileName: 'vendor_pricing.xlsx', sheetName: 'Vendor Pricing' });
+        showStatus('Exported to Excel', 'success');
+    }
+
+    function downloadTemplate(format) {
+        window.open(`/api/vendor-pricing/template/${format}`, '_blank');
+    }
+
+    function addRow() {
+        const newRow = {
+            cost_code: '', item_name: '', product_description: '', vendor_name: '',
+            price: 0, unit_of_measure: '', price_type: '', notes: ''
+        };
+        fetch('/api/vendor-pricing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newRow)
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showStatus('Row added', 'success');
+                refreshGrid();
+            } else {
+                showStatus('Add failed: ' + (result.message || 'Unknown error'), 'error');
+            }
+        })
+        .catch(() => showStatus('Error adding row', 'error'));
+    }
+
+    function duplicateRow(node) {
+        let selected = node ? [node] : gridApi.getSelectedNodes();
+        if (selected.length === 0) {
+            showStatus('Select a row to duplicate', 'warning');
+            return;
+        }
+        const rowData = selected[0].data;
+        const duplicate = { ...rowData };
+        delete duplicate.pricing_id;
+        fetch('/api/vendor-pricing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(duplicate)
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showStatus('Row duplicated', 'success');
+                refreshGrid();
+            } else {
+                showStatus('Duplicate failed: ' + (result.message || 'Unknown error'), 'error');
+            }
+        })
+        .catch(() => showStatus('Error duplicating row', 'error'));
+    }
+
+    function deleteRow(node) {
+        let selected = node ? [node] : gridApi.getSelectedNodes();
+        if (selected.length === 0) {
+            showStatus('Select a row to delete', 'warning');
+            return;
+        }
+        const pricingId = selected[0].data.pricing_id;
+        if (!pricingId) {
+            showStatus('Cannot delete unsaved row', 'warning');
+            return;
+        }
+        if (!confirm('Delete this row?')) return;
+        fetch(`/api/vendor-pricing/${pricingId}`, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showStatus('Row deleted', 'success');
+                refreshGrid();
+            } else {
+                showStatus('Delete failed: ' + (result.message || 'Unknown error'), 'error');
+            }
+        })
+        .catch(() => showStatus('Error deleting row', 'error'));
+    }
+
+    function showStatus(message, type = 'info') {
+        const statusDiv = document.getElementById('statusMessage');
+        const alertClass = {
+            'success': 'alert-success',
+            'error': 'alert-danger',
+            'warning': 'alert-warning',
+            'info': 'alert-info'
+        }[type] || 'alert-info';
+        statusDiv.innerHTML = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
+        if (type === 'success' || type === 'info') {
+            setTimeout(() => {
+                const alert = statusDiv.querySelector('.alert');
+                if (alert) alert.remove();
+            }, 4000);
+        }
+    }
+
+    function showBulkImportModal() {
+        alert('Bulk import modal not implemented in this refactor. Please use the existing import endpoint.');
+    }
+
+    function showQuickStats() {
+        alert('Quick stats modal not implemented in this refactor. Please use the existing stats logic.');
+    }
+</script>
+{% endblock %}

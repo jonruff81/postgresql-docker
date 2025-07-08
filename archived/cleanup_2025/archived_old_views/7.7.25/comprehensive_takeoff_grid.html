@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comprehensive Takeoff Analysis - AG Grid</title>
     
-    <!-- AG Grid CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/styles/ag-grid.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/styles/ag-theme-alpine.css">
+    <!-- AG Grid Enterprise CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.2.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.2.0/styles/ag-theme-alpine.css">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -59,78 +59,31 @@
             </div>
         </div>
 
-        <!-- Filter Toggle Buttons -->
-        <div class="row mb-2">
-            <div class="col-12">
-                <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filterControls" aria-expanded="true" aria-controls="filterControls">
-                    <i class="fas fa-filter"></i> <span id="filterToggleText">Hide Filters</span>
+
+        <!-- Toggle Summary Button -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <button type="button" class="btn btn-outline-success" onclick="toggleSummary()">
+                    <i class="fas fa-chart-pie" id="summaryToggleIcon"></i> <span id="summaryToggleText">Show Summary</span>
                 </button>
-                <button class="btn btn-outline-success btn-sm ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#summaryCard" aria-expanded="true" aria-controls="summaryCard">
-                    <i class="fas fa-chart-pie"></i> <span id="summaryToggleText">Hide Summary</span>
-                </button>
-                <small class="text-muted ms-2">Toggle filter controls and pricing summary</small>
+                <small class="text-muted ms-3">Toggle pricing summary cards</small>
             </div>
         </div>
 
-        <!-- Custom Filter Controls (Collapsible) -->
-        <div class="collapse show" id="filterControls">
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-building"></i> Filter by Plans
-                                <button class="btn btn-sm btn-outline-primary float-end" onclick="selectAllPlans()">Select All</button>
-                                <button class="btn btn-sm btn-outline-secondary float-end me-2" onclick="clearAllPlans()">Clear All</button>
-                            </h6>
-                        </div>
-                        <div class="card-body" style="max-height: 150px; overflow-y: auto;">
-                            <div id="planFilters" class="row">
-                                <!-- Plan checkboxes will be populated here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">
-                                <i class="fas fa-cog"></i> Filter by Options
-                                <button class="btn btn-sm btn-outline-primary float-end" onclick="selectAllOptions()">Select All</button>
-                                <button class="btn btn-sm btn-outline-secondary float-end me-2" onclick="clearAllOptions()">Clear All</button>
-                            </h6>
-                        </div>
-                        <div class="card-body" style="max-height: 150px; overflow-y: auto;">
-                            <div id="optionFilters" class="row">
-                                <!-- Option checkboxes will be populated here -->
-                            </div>
-                        </div>
-                    </div>
+        <!-- Summary Cards Section -->
+        <div id="summaryCardsSection" class="mb-3" style="display: none;">
+            <!-- Summary Header -->
+            <div class="row mb-2">
+                <div class="col-md-12">
+                    <h6 class="text-muted">
+                        <i class="fas fa-chart-pie"></i> Plan & Option Summary (Filtered Data: <span id="totalExtendedPrice">$0.00</span> | <span id="totalRecords">0</span> records)
+                    </h6>
                 </div>
             </div>
-        </div>
-
-        <!-- Summary Card (Collapsible) -->
-        <div class="collapse show" id="summaryCard">
-            <div class="row mb-3">
-                <div class="col-12">
-                    <div class="card border-success">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0">
-                                <i class="fas fa-chart-pie text-success"></i> Filtered Plan & Option Summary
-                                <span class="badge bg-success ms-2" id="summaryBadge">0 combinations</span>
-                                <small class="text-muted float-end" id="summaryTotal">Total: $0.00</small>
-                            </h6>
-                        </div>
-                        <div class="card-body" style="max-height: 200px; overflow-y: auto;">
-                            <div id="summaryContent" class="row">
-                                <div class="col-12 text-center text-muted">
-                                    <i class="fas fa-spinner fa-spin"></i> Loading summary...
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            
+            <!-- Individual Plan/Option Cards -->
+            <div id="planOptionCards" class="row">
+                <!-- Individual cards will be populated here -->
             </div>
         </div>
 
@@ -215,20 +168,19 @@
         </div>
     </div>
 
-    <!-- AG Grid JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@30.2.0/dist/ag-grid-community.min.js"></script>
+    <!-- AG Grid Enterprise JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.2.0/dist/ag-grid-enterprise.min.js"></script>
     
     <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Set AG Grid Enterprise License Key
+        agGrid.LicenseManager.setLicenseKey("Using_this_{AG_Grid}_Enterprise_key_{AG-090866}_in_excess_of_the_licence_granted_is_not_permitted___Please_report_misuse_to_legal@ag-grid.com___For_help_with_changing_this_key_please_contact_info@ag-grid.com___{Jon_Ruff}_is_granted_a_{Single_Application}_Developer_License_for_the_application_{7.2.25_postgress/docker}_only_for_{1}_Front-End_JavaScript_developer___All_Front-End_JavaScript_developers_working_on_{7.2.25_postgress/docker}_need_to_be_licensed___{7.2.25_postgress/docker}_has_not_been_granted_a_Deployment_License_Add-on___This_key_works_with_{AG_Grid}_Enterprise_versions_released_before_{3_July_2026}____[v3]_[01]_MTc4MzAzMzIwMDAwMA==19f186f51d3d529c90499fde9cba373b");
+
         let gridApi;
         let gridColumnApi;
         let gridData = [];
-        let uniquePlans = [];
-        let uniqueOptions = [];
-        let selectedPlans = new Set();
-        let selectedOptions = new Set();
         
         // Dependency mappings for cascading dropdowns
         let dependencyMappings = {
@@ -247,7 +199,7 @@
         let duplicatedRowIds = new Set();
         let nextRowId = 1;
 
-        // Grid column definitions
+        // Grid column definitions with AG-Grid mini filters
         const columnDefs = [
             {
                 headerName: "Select",
@@ -268,10 +220,10 @@
                         headerName: "Plan Name", 
                         filter: 'agSetColumnFilter',
                         filterParams: {
-                            values: [], // Will be populated when data loads
-                            selectAllOnMiniFilter: true,
-                            miniFilter: true,
-                            buttons: ['reset', 'apply']
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
                         },
                         sort: "asc", 
                         pinned: 'left', 
@@ -282,10 +234,10 @@
                         headerName: "Option", 
                         filter: 'agSetColumnFilter',
                         filterParams: {
-                            values: [], // Will be populated when data loads
-                            selectAllOnMiniFilter: true,
-                            miniFilter: true,
-                            buttons: ['reset', 'apply']
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
                         },
                         pinned: 'left', 
                         width: 120 
@@ -298,7 +250,13 @@
                     { 
                         field: "cost_code", 
                         headerName: "Cost Code", 
-                        filter: true, 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
                         width: 100,
                         editable: true,
                         cellEditor: 'agSelectCellEditor',
@@ -310,7 +268,13 @@
                     { 
                         field: "item_name", 
                         headerName: "Item Name", 
-                        filter: true, 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
                         width: 200,
                         editable: true,
                         cellEditor: 'agSelectCellEditor',
@@ -336,11 +300,17 @@
                         },
                         cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
                     },
-                    { 
-                        field: "item_description", 
-                        headerName: "Item Description", 
-                        filter: true, 
-                        width: 250, 
+                    {
+                        field: "item_description",
+                        headerName: "Item Description",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 250,
                         tooltipField: "item_description",
                         editable: true,
                         cellEditor: 'agLargeTextCellEditor',
@@ -352,11 +322,28 @@
             {
                 headerName: "Quantities & Pricing",
                 children: [
-                    { field: "quantity_source", headerName: "Quantity Source", filter: true, width: 140 },
                     { 
-                        field: "quantity", 
-                        headerName: "Quantity", 
-                        filter: 'agNumberColumnFilter',
+                        field: "quantity_source", 
+                        headerName: "Quantity Source", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 140 
+                    },
+                    {
+                        field: "quantity",
+                        headerName: "Quantity",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
                         cellClass: 'ag-right-aligned-cell',
                         valueFormatter: params => params.value ? parseFloat(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4}) : '',
                         width: 100,
@@ -369,10 +356,16 @@
                         valueParser: params => parseFloat(params.newValue) || 0,
                         cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
                     },
-                    { 
-                        field: "unit_price", 
-                        headerName: "Unit Price", 
-                        filter: 'agNumberColumnFilter',
+                    {
+                        field: "unit_price",
+                        headerName: "Unit Price",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
                         cellClass: 'ag-right-aligned-cell',
                         valueFormatter: params => params.value ? '$' + parseFloat(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '',
                         width: 110,
@@ -385,10 +378,16 @@
                         valueParser: params => parseFloat(params.newValue) || 0,
                         cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
                     },
-                    { 
-                        field: "price_factor", 
-                        headerName: "Price Factor", 
-                        filter: 'agNumberColumnFilter',
+                    {
+                        field: "price_factor",
+                        headerName: "Price Factor",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
                         cellClass: 'ag-right-aligned-cell',
                         valueFormatter: params => params.value ? parseFloat(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4}) : '',
                         width: 110,
@@ -404,7 +403,13 @@
                     { 
                         field: "unit_of_measure", 
                         headerName: "Unit", 
-                        filter: true, 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
                         width: 80,
                         editable: true,
                         cellEditor: 'agSelectCellEditor',
@@ -413,10 +418,16 @@
                         },
                         cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
                     },
-                    { 
-                        field: "extended_price", 
-                        headerName: "Extended Price", 
-                        filter: 'agNumberColumnFilter',
+                    {
+                        field: "extended_price",
+                        headerName: "Extended Price",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
                         cellClass: 'ag-right-aligned-cell',
                         valueFormatter: params => params.value ? '$' + parseFloat(params.value).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '',
                         cellStyle: {'background-color': '#e8f5e8', fontWeight: 'bold'},
@@ -441,7 +452,13 @@
                     { 
                         field: "vendor_name", 
                         headerName: "Vendor", 
-                        filter: true, 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
                         width: 150,
                         editable: true,
                         cellEditor: 'agSelectCellEditor',
@@ -450,24 +467,69 @@
                         },
                         cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
                     },
-                    { 
-                        field: "notes", 
-                        headerName: "Notes", 
-                        filter: true, 
-                        width: 200, 
+                    {
+                        field: "notes",
+                        headerName: "Notes",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 200,
                         tooltipField: "notes",
                         editable: true,
                         cellEditor: 'agLargeTextCellEditor',
                         cellEditorPopup: true,
                         cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
                     },
-                    { field: "job_name", headerName: "Job Name", filter: true, width: 150 },
-                    { field: "job_number", headerName: "Job Number", filter: true, width: 120 },
-                    { field: "customer_name", headerName: "Customer", filter: true, width: 150 },
+                    { 
+                        field: "job_name", 
+                        headerName: "Job Name", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 150 
+                    },
+                    {
+                        field: "job_number",
+                        headerName: "Job Number",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 120
+                    },
+                    { 
+                        field: "customer_name", 
+                        headerName: "Customer", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 150 
+                    },
                     { 
                         field: "room", 
                         headerName: "Room", 
-                        filter: true, 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
                         width: 120,
                         editable: true,
                         cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
@@ -475,7 +537,13 @@
                     { 
                         field: "spec_name", 
                         headerName: "Spec", 
-                        filter: true, 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
                         width: 120,
                         editable: true,
                         cellStyle: params => params.data ? {'background-color': '#f8f9fa'} : null
@@ -491,9 +559,6 @@
                 sortable: true,
                 filter: true,
                 resizable: true,
-                filterParams: {
-                    buttons: ['reset', 'apply'],
-                },
             },
             enableRangeSelection: true,
             enableCharts: true,
@@ -516,7 +581,13 @@
             paginationAutoPageSize: false,
             animateRows: true,
             onGridReady: onGridReady,
-            onFilterChanged: updateRowCount,
+            onFilterChanged: function() {
+                updateRowCount();
+                // Update summary cards when filters change (if summary is visible)
+                if (document.getElementById('summaryCardsSection').style.display !== 'none') {
+                    updateSummaryCards();
+                }
+            },
             onSelectionChanged: updateRowCount,
             onCellValueChanged: onCellValueChanged,
             undoRedoCellEditing: true,
@@ -538,30 +609,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             const gridDiv = document.querySelector('#comprehensiveTakeoffGrid');
             new agGrid.Grid(gridDiv, gridOptions);
-            
-            // Add event listeners for filter toggle
-            const filterControls = document.getElementById('filterControls');
-            const filterToggleText = document.getElementById('filterToggleText');
-            
-            filterControls.addEventListener('show.bs.collapse', function () {
-                filterToggleText.textContent = 'Hide Filters';
-            });
-            
-            filterControls.addEventListener('hide.bs.collapse', function () {
-                filterToggleText.textContent = 'Show Filters';
-            });
-            
-            // Add event listeners for summary toggle
-            const summaryCard = document.getElementById('summaryCard');
-            const summaryToggleText = document.getElementById('summaryToggleText');
-            
-            summaryCard.addEventListener('show.bs.collapse', function () {
-                summaryToggleText.textContent = 'Hide Summary';
-            });
-            
-            summaryCard.addEventListener('hide.bs.collapse', function () {
-                summaryToggleText.textContent = 'Show Summary';
-            });
         });
 
         // Grid ready event - load data here when grid is fully initialized
@@ -585,10 +632,9 @@
                 .then(response => response.json())
                 .then(data => {
                     gridData = data;
-                    populateFilterOptions(data);
+                    buildDependencyMappings(data);
                     gridApi.setRowData(data);
                     updateRowCount();
-                    updateSummaryCard(data);  // Update summary with initial data
                     showStatusMessage(`Loaded ${data.length} takeoff records successfully`, 'success');
                 })
                 .catch(error => {
@@ -597,349 +643,8 @@
                 });
         }
 
-        // Populate filter options from data
-        function populateFilterOptions(data) {
-            try {
-                console.log('Populating filter options with data:', data.length, 'records');
-                
-                // Extract unique plans and options
-                const plansSet = new Set();
-                const optionsSet = new Set();
-                
-                data.forEach(row => {
-                    if (row.plan_full_name) plansSet.add(row.plan_full_name);
-                    if (row.option_name) optionsSet.add(row.option_name);
-                });
-                
-                uniquePlans = Array.from(plansSet).sort();
-                uniqueOptions = Array.from(optionsSet).sort();
-                
-                // Build dependency mappings
-                buildDependencyMappings(data);
-                
-                console.log('Unique plans:', uniquePlans);
-                console.log('Unique options:', uniqueOptions);
-                
-                // Clear existing selections
-                selectedPlans.clear();
-                selectedOptions.clear();
-                
-                // Populate plan checkboxes
-                const planContainer = document.getElementById('planFilters');
-                if (!planContainer) {
-                    console.error('Plan container not found!');
-                    return;
-                }
-                planContainer.innerHTML = '';
-                
-                uniquePlans.forEach((plan, index) => {
-                    const safeId = `plan_${index}`;
-                    const colDiv = document.createElement('div');
-                    colDiv.className = 'col-12 col-md-6 mb-1';
-                    
-                    const formCheck = document.createElement('div');
-                    formCheck.className = 'form-check';
-                    
-                    const checkbox = document.createElement('input');
-                    checkbox.className = 'form-check-input';
-                    checkbox.type = 'checkbox';
-                    checkbox.id = safeId;
-                    checkbox.value = plan;
-                    checkbox.checked = true;
-                    checkbox.addEventListener('change', () => handlePlanFilterChange(plan));
-                    
-                    // Add to selected set since checkbox is checked
-                    selectedPlans.add(plan);
-                    
-                    const label = document.createElement('label');
-                    label.className = 'form-check-label small';
-                    label.htmlFor = safeId;
-                    label.title = plan;
-                    label.textContent = plan;
-                    
-                    formCheck.appendChild(checkbox);
-                    formCheck.appendChild(label);
-                    colDiv.appendChild(formCheck);
-                    planContainer.appendChild(colDiv);
-                });
-                
-                // Populate option checkboxes
-                const optionContainer = document.getElementById('optionFilters');
-                if (!optionContainer) {
-                    console.error('Option container not found!');
-                    return;
-                }
-                optionContainer.innerHTML = '';
-                
-                uniqueOptions.forEach((option, index) => {
-                    const safeId = `option_${index}`;
-                    const colDiv = document.createElement('div');
-                    colDiv.className = 'col-12 col-md-6 mb-1';
-                    
-                    const formCheck = document.createElement('div');
-                    formCheck.className = 'form-check';
-                    
-                    const checkbox = document.createElement('input');
-                    checkbox.className = 'form-check-input';
-                    checkbox.type = 'checkbox';
-                    checkbox.id = safeId;
-                    checkbox.value = option;
-                    checkbox.checked = true;
-                    checkbox.addEventListener('change', () => handleOptionFilterChange(option));
-                    
-                    // Add to selected set since checkbox is checked
-                    selectedOptions.add(option);
-                    
-                    const label = document.createElement('label');
-                    label.className = 'form-check-label small';
-                    label.htmlFor = safeId;
-                    label.title = option;
-                    label.textContent = option;
-                    
-                    formCheck.appendChild(checkbox);
-                    formCheck.appendChild(label);
-                    colDiv.appendChild(formCheck);
-                    optionContainer.appendChild(colDiv);
-                });
-                
-                console.log('Initial selected plans:', Array.from(selectedPlans));
-                console.log('Initial selected options:', Array.from(selectedOptions));
-                console.log('Filter options populated successfully');
-                showStatusMessage('Filter controls loaded successfully', 'success');
-                
-                // Apply initial filters to show all data initially
-                console.log('Applying initial filters...');
-                applyCustomFilters();
-                
-            } catch (error) {
-                console.error('Error populating filter options:', error);
-                showStatusMessage('Error loading filter controls', 'danger');
-            }
-        }
-
-        // Handle plan filter changes
-        function handlePlanFilterChange(plan) {
-            console.log('Plan filter change triggered for:', plan);
-            
-            // Find the checkbox by searching all plan checkboxes
-            let checkbox = null;
-            const allPlanCheckboxes = document.querySelectorAll('#planFilters input[type="checkbox"]');
-            for (let cb of allPlanCheckboxes) {
-                if (cb.value === plan) {
-                    checkbox = cb;
-                    break;
-                }
-            }
-            
-            if (checkbox) {
-                if (checkbox.checked) {
-                    selectedPlans.add(plan);
-                    console.log('✅ Added plan filter:', plan);
-                } else {
-                    selectedPlans.delete(plan);
-                    console.log('❌ Removed plan filter:', plan);
-                }
-            } else {
-                console.error('❌ Could not find checkbox for plan:', plan);
-            }
-            
-            console.log('🔍 Current selected plans:', Array.from(selectedPlans));
-            applyCustomFilters();
-        }
-
-        // Handle option filter changes
-        function handleOptionFilterChange(option) {
-            console.log('Option filter change triggered for:', option);
-            
-            // Find the checkbox by searching all option checkboxes
-            let checkbox = null;
-            const allOptionCheckboxes = document.querySelectorAll('#optionFilters input[type="checkbox"]');
-            for (let cb of allOptionCheckboxes) {
-                if (cb.value === option) {
-                    checkbox = cb;
-                    break;
-                }
-            }
-            
-            if (checkbox) {
-                if (checkbox.checked) {
-                    selectedOptions.add(option);
-                    console.log('✅ Added option filter:', option);
-                } else {
-                    selectedOptions.delete(option);
-                    console.log('❌ Removed option filter:', option);
-                }
-            } else {
-                console.error('❌ Could not find checkbox for option:', option);
-            }
-            
-            console.log('🔍 Current selected options:', Array.from(selectedOptions));
-            applyCustomFilters();
-        }
-
-        // Apply custom filters to grid
-        function applyCustomFilters() {
-            if (!gridApi) return;
-            
-            console.log('🔄 Applying filters:', {
-                selectedPlans: Array.from(selectedPlans),
-                selectedOptions: Array.from(selectedOptions)
-            });
-            
-            // Filter data based on selected plans and options
-            const filteredData = gridData.filter(row => {
-                const planMatch = selectedPlans.has(row.plan_full_name);
-                const optionMatch = selectedOptions.has(row.option_name);
-                return planMatch && optionMatch;
-            });
-            
-            console.log(`📊 Filtered ${gridData.length} records down to ${filteredData.length}`);
-            
-            // Clear any existing selection before updating data
-            gridApi.deselectAll();
-            
-            // Set the filtered data directly to preserve original IDs
-            gridApi.setRowData(filteredData);
-            
-            // Force grid refresh
-            setTimeout(() => {
-                gridApi.refreshCells();
-                updateRowCount();
-            }, 100);
-            
-            updateSummaryCard(filteredData);
-            
-            const selectedPlanCount = selectedPlans.size;
-            const selectedOptionCount = selectedOptions.size;
-            showStatusMessage(`✅ Filtered to ${filteredData.length} records (${selectedPlanCount} plans, ${selectedOptionCount} options)`, 'info');
-        }
-
-        // Update summary card with filtered data
-        function updateSummaryCard(filteredData) {
-            try {
-                // Calculate plan+option combinations and their totals
-                const combinationTotals = new Map();
-                let grandTotal = 0;
-                
-                filteredData.forEach(row => {
-                    const key = `${row.plan_full_name} | ${row.option_name}`;
-                    const extendedPrice = parseFloat(row.extended_price || 0);
-                    
-                    if (combinationTotals.has(key)) {
-                        combinationTotals.set(key, combinationTotals.get(key) + extendedPrice);
-                    } else {
-                        combinationTotals.set(key, extendedPrice);
-                    }
-                    
-                    grandTotal += extendedPrice;
-                });
-                
-                // Sort combinations by total value (highest first)
-                const sortedCombinations = Array.from(combinationTotals.entries())
-                    .sort((a, b) => b[1] - a[1]);
-                
-                // Update summary badge and total
-                const summaryBadge = document.getElementById('summaryBadge');
-                const summaryTotal = document.getElementById('summaryTotal');
-                const summaryContent = document.getElementById('summaryContent');
-                
-                summaryBadge.textContent = `${sortedCombinations.length} combinations`;
-                summaryTotal.textContent = `Total: $${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-                
-                // Clear and populate summary content
-                summaryContent.innerHTML = '';
-                
-                if (sortedCombinations.length === 0) {
-                    summaryContent.innerHTML = `
-                        <div class="col-12 text-center text-muted">
-                            <i class="fas fa-info-circle"></i> No plan & option combinations found for current filters
-                        </div>
-                    `;
-                } else {
-                    sortedCombinations.forEach(([combination, total]) => {
-                        const [planName, optionName] = combination.split(' | ');
-                        const percentage = grandTotal > 0 ? (total / grandTotal * 100) : 0;
-                        
-                        const colDiv = document.createElement('div');
-                        colDiv.className = 'col-md-6 mb-2';
-                        
-                        colDiv.innerHTML = `
-                            <div class="card card-body p-2 small">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <div class="fw-bold text-primary" style="font-size: 0.85em;">${planName}</div>
-                                        <div class="text-muted" style="font-size: 0.8em;">${optionName}</div>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="fw-bold text-success">$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
-                                        <div class="text-muted" style="font-size: 0.75em;">${percentage.toFixed(1)}%</div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        summaryContent.appendChild(colDiv);
-                    });
-                }
-                
-            } catch (error) {
-                console.error('Error updating summary card:', error);
-                const summaryContent = document.getElementById('summaryContent');
-                summaryContent.innerHTML = `
-                    <div class="col-12 text-center text-danger">
-                        <i class="fas fa-exclamation-triangle"></i> Error loading summary
-                    </div>
-                `;
-            }
-        }
-
-        // Select all plans
-        function selectAllPlans() {
-            selectedPlans = new Set(uniquePlans);
-            uniquePlans.forEach((plan, index) => {
-                const checkbox = document.getElementById(`plan_${index}`);
-                if (checkbox) checkbox.checked = true;
-            });
-            applyCustomFilters();
-        }
-
-        // Clear all plans
-        function clearAllPlans() {
-            selectedPlans.clear();
-            uniquePlans.forEach((plan, index) => {
-                const checkbox = document.getElementById(`plan_${index}`);
-                if (checkbox) checkbox.checked = false;
-            });
-            applyCustomFilters();
-        }
-
-        // Select all options
-        function selectAllOptions() {
-            selectedOptions = new Set(uniqueOptions);
-            uniqueOptions.forEach((option, index) => {
-                const checkbox = document.getElementById(`option_${index}`);
-                if (checkbox) checkbox.checked = true;
-            });
-            applyCustomFilters();
-        }
-
-        // Clear all options
-        function clearAllOptions() {
-            selectedOptions.clear();
-            uniqueOptions.forEach((option, index) => {
-                const checkbox = document.getElementById(`option_${index}`);
-                if (checkbox) checkbox.checked = false;
-            });
-            applyCustomFilters();
-        }
-
-        // Clear all filters (both custom and grid filters)
+        // Clear all filters
         function clearAllFilters() {
-            // Clear custom filters
-            selectAllPlans();
-            selectAllOptions();
-            
-            // Clear grid filters
             gridApi.setFilterModel(null);
             showStatusMessage('All filters cleared', 'info');
         }
@@ -1233,8 +938,8 @@
                         gridData.push(duplicatedRow);
                     }
                     
-                    // Re-apply the current filters to include the new duplicated row
-                    applyCustomFilters();
+                    // Add the duplicated row to the grid
+                    gridApi.setRowData(gridData);
                     
                     showStatusMessage('Row duplicated and saved successfully - edit any field to remove blue highlighting', 'success');
                     console.log('Row duplicated and saved:', duplicatedRowId);
@@ -1273,9 +978,9 @@
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
-                    // Remove from gridData and re-apply filters
+                    // Remove from gridData and refresh grid
                     gridData = gridData.filter(r => r.takeoff_id !== row.takeoff_id);
-                    applyCustomFilters();
+                    gridApi.setRowData(gridData);
                     showStatusMessage('Row deleted successfully', 'success');
                 } else {
                     showStatusMessage('Failed to delete row: ' + (result.message || 'Unknown error'), 'danger');
@@ -1308,12 +1013,6 @@
                     force: true
                 });
                 
-                // Update summary card with current data
-                const currentData = [];
-                gridApi.forEachNodeAfterFilterAndSort(node => {
-                    currentData.push(node.data);
-                });
-                updateSummaryCard(currentData);
                 
                 showStatusMessage(`Updated ${colDef.headerName}: ${oldValue} → ${newValue}`, 'success');
             } else {
@@ -1348,6 +1047,104 @@
                         bsAlert.close();
                     }
                 }, 3000);
+            }
+        }
+
+        // Toggle summary cards visibility
+        function toggleSummary() {
+            const summarySection = document.getElementById('summaryCardsSection');
+            const toggleIcon = document.getElementById('summaryToggleIcon');
+            const toggleText = document.getElementById('summaryToggleText');
+            
+            if (summarySection.style.display === 'none') {
+                summarySection.style.display = 'block';
+                toggleIcon.className = 'fas fa-chart-pie';
+                toggleText.textContent = 'Hide Summary';
+                updateSummaryCards();
+            } else {
+                summarySection.style.display = 'none';
+                toggleIcon.className = 'fas fa-chart-pie';
+                toggleText.textContent = 'Show Summary';
+            }
+        }
+
+        // Update summary cards with current data (filtered data only)
+        function updateSummaryCards() {
+            if (!gridApi) return;
+
+            let totalExtendedPrice = 0;
+            let totalRecords = 0;
+            const planOptionBreakdown = new Map();
+
+            // Iterate through filtered data only (this ensures the cards respond to current filters)
+            gridApi.forEachNodeAfterFilter((node) => {
+                if (node.data) {
+                    totalRecords++;
+                    
+                    // Calculate extended price
+                    const quantity = parseFloat(node.data.quantity || 0);
+                    const unitPrice = parseFloat(node.data.unit_price || 0);
+                    const priceFactor = parseFloat(node.data.price_factor || 1);
+                    const extendedPrice = quantity * unitPrice * priceFactor;
+                    totalExtendedPrice += extendedPrice;
+                    
+                    // Build plan/option breakdown for filtered data only
+                    const planName = node.data.plan_full_name || 'Unknown Plan';
+                    const optionName = node.data.option_name || 'Unknown Option';
+                    const key = `${planName} - ${optionName}`;
+                    
+                    if (!planOptionBreakdown.has(key)) {
+                        planOptionBreakdown.set(key, {
+                            planName: planName,
+                            optionName: optionName,
+                            totalPrice: 0,
+                            recordCount: 0
+                        });
+                    }
+                    
+                    const breakdown = planOptionBreakdown.get(key);
+                    breakdown.totalPrice += extendedPrice;
+                    breakdown.recordCount += 1;
+                }
+            });
+
+            // Update the header summary 
+            document.getElementById('totalExtendedPrice').textContent = 
+                '$' + totalExtendedPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('totalRecords').textContent = totalRecords.toLocaleString();
+
+            // Build individual plan/option cards
+            const cardsContainer = document.getElementById('planOptionCards');
+            if (planOptionBreakdown.size === 0) {
+                cardsContainer.innerHTML = '<div class="col-12"><p class="text-muted text-center">No data available - adjust your filters to see plan/option summaries</p></div>';
+            } else {
+                // Sort by total price descending
+                const sortedBreakdown = Array.from(planOptionBreakdown.entries())
+                    .sort((a, b) => b[1].totalPrice - a[1].totalPrice);
+
+                // Create individual compact cards for each plan/option combination
+                const cardsHtml = sortedBreakdown.map(([key, data]) => `
+                    <div class="col-auto mb-1" style="min-width: 150px;">
+                        <div class="card border-0 shadow-sm" style="height: auto;">
+                            <div class="card-body" style="padding: 6px 8px;">
+                                <div class="text-truncate" style="font-size: 13px; font-weight: bold; color: #007bff; line-height: 1.1; margin-bottom: 2px;" title="${data.planName}">
+                                    ${data.planName.length > 18 ? data.planName.substring(0, 18) + '...' : data.planName}
+                                </div>
+                                <div style="margin-bottom: 3px;">
+                                    <span class="badge bg-secondary" style="font-size: 10px; padding: 2px 4px;">${data.optionName}</span>
+                                </div>
+                                <div style="font-size: 14px; font-weight: bold; color: #28a745; line-height: 1.1; margin-bottom: 1px;">
+                                    $${data.totalPrice.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+                                </div>
+                                <div style="font-size: 11px; color: #6c757d; line-height: 1;">
+                                    ${data.recordCount} item${data.recordCount !== 1 ? 's' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                cardsContainer.innerHTML = cardsHtml;
             }
         }
     </script>

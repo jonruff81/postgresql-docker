@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Products | Simonini{% endblock %}
+
+{% block page_title %}Products{% endblock %}
+
+{% block toolbar_right %}
+    <button class="btn" onclick="refreshGrid()">
+        <i class="fas fa-sync"></i> Refresh
+    </button>
+    <button class="btn" onclick="addNewProduct()">
+        <i class="fas fa-plus"></i> Add Product
+    </button>
+{% endblock %}
+
+{% block grid %}
+    <div id="productsGrid" class="ag-theme-alpine" style="height: 75vh; width:100%;"></div>
+    <!-- Product Modal (styled to match Simonini) -->
+    <div id="productModal" class="modal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius:18px;">
+          <div class="modal-header" style="background:#182641; color:#ad9244;">
+            <h5 class="modal-title" id="productModalTitle">Add New Product</h5>
+            <button type="button" class="btn-close" onclick="closeModal()" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="productForm">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Product Name *</label>
+                  <input type="text" class="form-control" name="item_name" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Cost Code</label>
+                  <input type="text" class="form-control" name="cost_code">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Brand</label>
+                  <input type="text" class="form-control" name="brand">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Model</label>
+                  <input type="text" class="form-control" name="model">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">SKU</label>
+                  <input type="text" class="form-control" name="sku">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Item Type</label>
+                  <select class="form-control" name="item_type">
+                    <option value="Quote">Quote</option>
+                    <option value="Product">Product</option>
+                    <option value="Attribute">Attribute</option>
+                  </select>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label">Description</label>
+                  <textarea class="form-control" name="product_description" rows="2"></textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Unit of Measure</label>
+                  <select class="form-control" name="unit_of_measure">
+                    <option value="EA">Each (EA)</option>
+                    <option value="SF">Square Feet (SF)</option>
+                    <option value="LF">Linear Feet (LF)</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Image URL</label>
+                  <input type="url" class="form-control" name="image_url">
+                </div>
+              </div>
+              <input type="hidden" name="product_id" id="productId">
+            </form>
+          </div>
+          <div class="modal-footer" style="background:#f7f7f7;">
+            <button type="button" class="btn" style="background:#ad9244; color:white;" onclick="saveProduct()">Save Product</button>
+            <button type="button" class="btn btn-light" onclick="closeModal()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<!-- AG-Grid JS is already loaded in base.html -->
+<script>
+    // Simonini Gold for header, selection, etc.
+    document.addEventListener('DOMContentLoaded', function() {
+        agGrid.LicenseManager.setLicenseKey("YOUR_AG_GRID_LICENSE_HERE");
+
+        const columnDefs = [
+            { headerName: 'Cost Code', field: 'cost_code', editable: true },
+            { headerName: 'Product Name', field: 'item_name', editable: true },
+            { headerName: 'Description', field: 'product_description', editable: false },
+            { headerName: 'Brand', field: 'brand', editable: true },
+            { headerName: 'Model', field: 'model', editable: true },
+            { headerName: 'SKU', field: 'sku', editable: true },
+            { headerName: 'Unit', field: 'unit_of_measure', editable: true }
+            // ...add more as needed
+        ];
+        const gridOptions = {
+            columnDefs,
+            rowData: [],
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true,
+                floatingFilter: true,
+                editable: true,
+            },
+            rowSelection: 'multiple',
+            animateRows: true,
+            enableRangeSelection: true,
+            suppressHorizontalScroll: false,
+            onGridReady: function(params) {
+                fetch('/api/products')
+                    .then(r => r.json())
+                    .then(data => params.api.setRowData(data));
+            }
+        };
+        new agGrid.Grid(document.getElementById('productsGrid'), gridOptions);
+
+        window.refreshGrid = function() {
+            fetch('/api/products')
+                .then(r => r.json())
+                .then(data => gridOptions.api.setRowData(data));
+        };
+
+        // Modal logic (custom, minimal Bootstrap dependency)
+        window.addNewProduct = function() {
+            document.getElementById('productForm').reset();
+            document.getElementById('productModalTitle').textContent = 'Add New Product';
+            document.getElementById('productModal').style.display = 'block';
+        };
+        window.closeModal = function() {
+            document.getElementById('productModal').style.display = 'none';
+        };
+        window.saveProduct = function() {
+            // You would add logic here to POST/PUT the form via fetch.
+            closeModal();
+            refreshGrid();
+        };
+    });
+</script>
+{% endblock %}

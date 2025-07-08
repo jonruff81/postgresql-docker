@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products (Simonini Style)</title>
+    <!-- Inter font for modern look -->
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+    <!-- AG Grid Enterprise CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@31.0.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@31.0.0/styles/ag-theme-alpine.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body, .ag-theme-alpine {
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 15px;
+            background: #fafbfc;
+            color: #212529;
+        }
+        .grid-container {
+            height: 70vh;
+            min-height: 500px;
+            width: 100%;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 1.5px 4px rgba(0,0,0,0.05);
+            margin-top: 20px;
+        }
+        .ag-theme-alpine {
+            --ag-header-height: 50px;
+            --ag-row-height: 54px;
+            --ag-border-color: #e9ecef;
+            --ag-header-background-color: #f8f9fa;
+            --ag-odd-row-background-color: #fcfcfc;
+        }
+        .toolbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 28px;
+            border-radius: 16px;
+            margin-bottom: 22px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.07);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .toolbar h2 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 29px;
+        }
+        .toolbar p {
+            margin: 10px 0 0 0;
+            font-size: 16px;
+            opacity: 0.85;
+        }
+        .ag-row:hover {
+            background-color: #f3f6fa !important;
+        }
+        .action-btns .btn {
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-weight: 500;
+            margin-left: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .action-btns .btn:hover {
+            box-shadow: 0 2px 7px rgba(118,75,162,0.11);
+        }
+        .product-cell-simonini {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .product-cell-simonini img {
+            width: 38px;
+            height: 38px;
+            object-fit: cover;
+            border-radius: 7px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .product-info-simonini {
+            min-width: 0;
+        }
+        .product-info-simonini .product-name {
+            font-weight: 600;
+            font-size: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .product-info-simonini .product-sub {
+            font-size: 12px;
+            color: #868e96;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            margin-right: 7px;
+            background: #ced4da;
+            vertical-align: middle;
+        }
+        .status-dot.active { background: #40c057; }
+        .status-dot.inactive { background: #868e96; }
+        .badge-chip {
+            background: #f3f6fa;
+            color: #6c757d;
+            border-radius: 10px;
+            padding: 4px 12px;
+            font-size: 12px;
+            margin-left: 4px;
+            font-weight: 500;
+        }
+        .ag-cell {
+            padding-top: 8px !important;
+            padding-bottom: 8px !important;
+        }
+        .ag-header-cell-label {
+            font-size: 14px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-3">
+        <div class="toolbar">
+            <div>
+                <h2><i class="fas fa-boxes me-3"></i>Products</h2>
+                <p>Modern product catalog with Simonini-style clarity and smart controls</p>
+            </div>
+            <div class="action-btns">
+                <button class="btn btn-primary" onclick="addBlankProductRow()"><i class="fas fa-plus"></i> Add Product</button>
+                <button class="btn btn-outline-secondary" onclick="refreshGrid()"><i class="fas fa-sync"></i> Refresh</button>
+                <button class="btn btn-outline-info" onclick="exportAgGridExcel()"><i class="fas fa-file-excel"></i></button>
+            </div>
+        </div>
+        <div class="grid-container position-relative">
+            <div id="productsGrid" class="ag-theme-alpine h-100"></div>
+        </div>
+    </div>
+    <!-- AG Grid Enterprise JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@31.0.0/dist/ag-grid-enterprise.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let gridApi;
+        // Product cell renderer in Simonini style
+        const ProductCellRenderer = params => {
+            const img = params.data.image_url || '/static/images/default-product.png';
+            const name = params.value || '—';
+            const brand = params.data.brand ? `<span class='text-secondary'>${params.data.brand}</span>` : '';
+            const sku = params.data.sku ? `<span class='text-muted ms-2'>${params.data.sku}</span>` : '';
+            return `
+            <div class='product-cell-simonini'>
+                <img src='${img}' alt=''>
+                <div class='product-info-simonini'>
+                    <div class='product-name'>${name}</div>
+                    <div class='product-sub'>${brand} ${sku}</div>
+                </div>
+            </div>`;
+        };
+        // Status cell with dot
+        const StatusCellRenderer = params => {
+            const isActive = params.value;
+            return `<span class='status-dot ${isActive ? "active" : "inactive"}'></span>${isActive ? "Active" : "Inactive"}`;
+        };
+        // Plan option as chip
+        const PlanOptionCellRenderer = params => {
+            if (!params.value) return '<span class="text-muted">—</span>';
+            // Combine plan and option if available
+            const plan = params.data.plan_full_name || '';
+            const opt = params.data.option_name || '';
+            return `<span class='badge-chip'>${plan}${plan && opt ? ' – ' : ''}${opt}</span>`;
+        };
+        // AG Grid Columns
+        const columnDefs = [
+            {
+                headerName: '',
+                field: 'actions',
+                width: 100,
+                pinned: 'left',
+                cellRenderer: params => `
+                    <button class='btn btn-outline-secondary btn-sm' title='Duplicate'><i class='fa fa-copy'></i></button>
+                    <button class='btn btn-outline-danger btn-sm' title='Delete'><i class='fa fa-trash'></i></button>
+                `,
+                sortable: false, filter: false, resizable: false, suppressMenu: true
+            },
+            {
+                headerName: 'Product',
+                field: 'item_name',
+                cellRenderer: ProductCellRenderer,
+                width: 250,
+                editable: true
+            },
+            { headerName: 'Brand', field: 'brand', width: 120, editable: true },
+            { headerName: 'SKU', field: 'sku', width: 110, editable: true },
+            { headerName: 'Cost Code', field: 'cost_code', width: 130, editable: true },
+            { headerName: 'Plan/Option', field: 'plan_option_id', cellRenderer: PlanOptionCellRenderer, width: 210 },
+            { headerName: 'Status', field: 'is_active', width: 95, cellRenderer: StatusCellRenderer, editable: true, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: [true, false] } },
+            { headerName: 'Min Price', field: 'min_price', width: 110, type: 'numericColumn', valueFormatter: params => params.value ? `$${parseFloat(params.value).toFixed(2)}` : '—', cellStyle: { 'text-align': 'right' } },
+            { headerName: 'Max Price', field: 'max_price', width: 110, type: 'numericColumn', valueFormatter: params => params.value ? `$${parseFloat(params.value).toFixed(2)}` : '—', cellStyle: { 'text-align': 'right' } },
+            { headerName: 'Avg Price', field: 'avg_price', width: 110, type: 'numericColumn', valueFormatter: params => params.value ? `$${parseFloat(params.value).toFixed(2)}` : '—', cellStyle: { 'text-align': 'right' } },
+        ];
+        // AG Grid Options
+        const gridOptions = {
+            columnDefs: columnDefs,
+            defaultColDef: {
+                sortable: true, filter: true, resizable: true, editable: true, floatingFilter: true
+            },
+            rowSelection: 'multiple',
+            pagination: true,
+            paginationPageSize: 50,
+            animateRows: true,
+            onGridReady: params => { gridApi = params.api; loadInitialData(); },
+        };
+        function loadInitialData() {
+            fetch('/api/products').then(r => r.json()).then(data => {
+                gridApi.setRowData(data);
+            });
+        }
+        function addBlankProductRow() {
+            // Simulate adding a blank product row
+            const blank = { item_name: '', brand: '', sku: '', cost_code: '', is_active: true };
+            gridApi.applyTransaction({ add: [blank], addIndex: 0 });
+        }
+        function refreshGrid() { loadInitialData(); }
+        function exportAgGridExcel() { gridApi.exportDataAsExcel(); }
+    </script>
+</body>
+</html>

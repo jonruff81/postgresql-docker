@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Items Management - AG Grid Enterprise</title>
+    
+    <!-- AG Grid Enterprise CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.2.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.2.0/styles/ag-theme-alpine.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .ag-theme-alpine {
+            font-size: 14px;
+            --ag-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .grid-container {
+            height: 700px;
+            width: 100%;
+        }
+        .excel-toolbar {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .performance-toolbar {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 1px solid #2196f3;
+            border-radius: 0.5rem;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .status-message {
+            margin-top: 10px;
+        }
+        .btn-excel {
+            background: linear-gradient(135deg, #1f7a1f 0%, #2e7d32 100%);
+            border: none;
+            color: white;
+        }
+        .btn-excel:hover {
+            background: linear-gradient(135deg, #2e7d32 0%, #1f7a1f 100%);
+            color: white;
+        }
+        .performance-badge {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .modified-row {
+            background-color: #fff3cd !important;
+        }
+        .new-row {
+            background-color: #d4edda !important;
+        }
+        .error-row {
+            background-color: #f8d7da !important;
+        }
+        .ag-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-weight: 600;
+        }
+        .import-drop-zone {
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+        .import-drop-zone:hover {
+            background-color: #e3f2fd;
+            border-color: #0056b3;
+        }
+        .import-drop-zone.dragover {
+            background-color: #e3f2fd;
+            border-color: #0056b3;
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2><i class="fas fa-cube text-primary"></i> Items Management</h2>
+                <p class="text-muted">High-performance items management with Excel-like editing and enterprise features</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="/" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <!-- Performance Toolbar -->
+        <div class="performance-toolbar">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h6 class="mb-2"><i class="fas fa-tachometer-alt text-primary"></i> Performance Settings</h6>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="toggleVirtualization()" id="virtualizationBtn">
+                            <i class="fas fa-layer-group"></i> Row Virtualization: ON
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="toggleAnimations()" id="animationsBtn">
+                            <i class="fas fa-magic"></i> Animations: ON
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="enableHighPerformanceMode()">
+                            <i class="fas fa-rocket"></i> High Performance Mode
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="performance-badge">Enterprise Mode</span>
+                    <small class="d-block text-muted mt-1">Optimized for large datasets</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Excel-like Toolbar -->
+        <div class="excel-toolbar">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <h6 class="mb-2"><i class="fas fa-file-excel text-success"></i> Excel Operations</h6>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-excel" onclick="exportToExcel()" title="Export to Excel">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportToCSV()" title="Export to CSV">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="showImportModal()" title="Import from Excel">
+                            <i class="fas fa-file-import"></i> Import Excel
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="mb-2"><i class="fas fa-edit text-warning"></i> Edit Operations</h6>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="copySelectedCells()" title="Copy (Ctrl+C)">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="pasteFromClipboard()" title="Paste (Ctrl+V)">
+                            <i class="fas fa-paste"></i> Paste
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="addNewItem()" title="Add Item">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="deleteSelectedItems()" title="Delete Selected">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="mb-2"><i class="fas fa-tools text-info"></i> Grid Tools</h6>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary" onclick="undoEdit()" title="Undo (Ctrl+Z)">
+                            <i class="fas fa-undo"></i> Undo
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="redoEdit()" title="Redo (Ctrl+Y)">
+                            <i class="fas fa-redo"></i> Redo
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="saveAllChanges()" title="Save All Changes">
+                            <i class="fas fa-save"></i> Save All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-warning" onclick="refreshGrid()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearAllFilters()">
+                        <i class="fas fa-filter"></i> Clear Filters
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="fitColumns()">
+                        <i class="fas fa-arrows-alt-h"></i> Fit Columns
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="autoSizeColumns()">
+                        <i class="fas fa-expand-arrows-alt"></i> Auto Size
+                    </button>
+                </div>
+                <div class="btn-group ms-2" role="group">
+                    <button type="button" class="btn btn-outline-info" onclick="showColumnChooser()">
+                        <i class="fas fa-columns"></i> Columns
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="showChartBuilder()">
+                        <i class="fas fa-chart-bar"></i> Charts
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="showPivotMode()">
+                        <i class="fas fa-table"></i> Pivot
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessages" class="status-message"></div>
+
+        <!-- AG Grid Container -->
+        <div class="grid-container">
+            <div id="itemsGrid" class="ag-theme-alpine" style="height: 100%; width: 100%;"></div>
+        </div>
+
+        <!-- Grid Info -->
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <small class="text-muted">
+                    <span id="rowCount">0</span> items | 
+                    <span id="selectedCount">0</span> selected |
+                    <span id="filteredCount">0</span> filtered |
+                    <span id="modifiedCount">0</span> modified
+                </small>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">
+                    Enterprise AG-Grid • Excel-like editing • High Performance Mode
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Excel Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="importModalLabel">
+                        <i class="fas fa-file-import"></i> Import Items from Excel
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="import-drop-zone" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                        <h5>Drag & Drop Excel File Here</h5>
+                        <p class="text-muted">Or click to browse for file</p>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-folder-open"></i> Browse Files
+                        </button>
+                    </div>
+                    
+                    <div id="importPreview" style="display: none;">
+                        <h6><i class="fas fa-eye"></i> Import Preview</h6>
+                        <div id="previewGrid" class="ag-theme-alpine" style="height: 300px; width: 100%;"></div>
+                        
+                        <div class="mt-3">
+                            <h6><i class="fas fa-cog"></i> Import Options</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="" id="hasHeaderRow" checked>
+                                        <label class="form-check-label" for="hasHeaderRow">
+                                            First row contains headers
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="" id="updateExisting">
+                                        <label class="form-check-label" for="updateExisting">
+                                            Update existing items
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="" id="validateData" checked>
+                                        <label class="form-check-label" for="validateData">
+                                            Validate data before import
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="" id="skipErrors">
+                                        <label class="form-check-label" for="skipErrors">
+                                            Skip rows with errors
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="importResults" style="display: none;">
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle"></i> Import Completed</h6>
+                            <p id="importSummary">Import summary will appear here</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="importBtn" onclick="performImport()" style="display: none;">
+                        <i class="fas fa-upload"></i> Import Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AG Grid Enterprise JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.2.0/dist/ag-grid-enterprise.min.js"></script>
+    
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- SheetJS for Excel processing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        // Set AG Grid Enterprise License Key
+        agGrid.LicenseManager.setLicenseKey("Using_this_{AG_Grid}_Enterprise_key_{AG-090866}_in_excess_of_the_licence_granted_is_not_permitted___Please_report_misuse_to_legal@ag-grid.com___For_help_with_changing_this_key_please_contact_info@ag-grid.com___{Jon_Ruff}_is_granted_a_{Single_Application}_Developer_License_for_the_application_{7.2.25_postgress/docker}_only_for_{1}_Front-End_JavaScript_developer___All_Front-End_JavaScript_developers_working_on_{7.2.25_postgress/docker}_need_to_be_licensed___{7.2.25_postgress/docker}_has_not_been_granted_a_Deployment_License_Add-on___This_key_works_with_{AG_Grid}_Enterprise_versions_released_before_{3_July_2026}____[v3]_[01]_MTc4MzAzMzIwMDAwMA==19f186f51d3d529c90499fde9cba373b");
+
+        let gridApi;
+        let gridData = [];
+        let modifiedRows = new Set();
+        let allCostCodes = [];
+        let allFormulas = [];
+        let previewGridApi;
+        let importData = [];
+
+        // Performance settings
+        let virtualizationEnabled = true;
+        let animationsEnabled = true;
+
+        // Items grid column definitions with enterprise features
+        const columnDefs = [
+            {
+                headerName: "Select",
+                checkboxSelection: true,
+                headerCheckboxSelection: true,
+                width: 50,
+                pinned: 'left',
+                lockPosition: true,
+                menuTabs: ['generalMenuTab'],
+                sortable: false,
+                filter: false,
+                suppressColumnsToolPanel: true,
+                suppressMovable: true
+            },
+            {
+                headerName: "Item Information",
+                children: [
+                    {
+                        field: "item_id",
+                        headerName: "ID",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 80,
+                        pinned: 'left',
+                        editable: false,
+                        cellStyle: {'background-color': '#f8f9fa', 'font-weight': 'bold'},
+                        suppressColumnsToolPanel: false
+                    },
+                    { 
+                        field: "item_name", 
+                        headerName: "Item Name", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 200,
+                        editable: true,
+                        cellEditor: 'agLargeTextCellEditor',
+                        cellEditorPopup: true,
+                        cellStyle: {'background-color': '#e8f5e8'},
+                        headerTooltip: "Primary name/description of the item",
+                        tooltipField: "item_name"
+                    },
+                    {
+                        field: "qty_formula",
+                        headerName: "Qty Formula",
+                        filter: 'agTextColumnFilter',
+                        width: 180,
+                        editable: true,
+                        cellEditor: 'agLargeTextCellEditor',
+                        cellEditorPopup: true,
+                        cellStyle: {'background-color': '#f0f8ff'},
+                        headerTooltip: "Formula for auto-calculating quantity (editable)"
+                    }
+                ]
+            },
+            {
+                headerName: "Cost & Formula Configuration",
+                children: [
+                    { 
+                        field: "cost_code", 
+                        headerName: "Cost Code", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 130,
+                        editable: true,
+                        cellEditor: 'agSelectCellEditor',
+                        cellEditorParams: {
+                            values: () => allCostCodes.map(cc => cc.cost_code).sort()
+                        },
+                        cellStyle: {'background-color': '#fff3cd'},
+                        headerTooltip: "Associated cost code for this item"
+                    },
+                    {
+                        field: "cost_code_description",
+                        headerName: "Cost Code Description",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 200,
+                        editable: false,
+                        cellStyle: {'background-color': '#f8f9fa'},
+                        headerTooltip: "Description of the cost code"
+                    },
+                    { 
+                        field: "formula_name", 
+                        headerName: "Formula", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 150,
+                        editable: true,
+                        cellEditor: 'agSelectCellEditor',
+                        cellEditorParams: {
+                            values: () => allFormulas.map(f => f.formula_name).sort()
+                        },
+                        cellStyle: {'background-color': '#e3f2fd'},
+                        headerTooltip: "Calculation formula for this item"
+                    },
+                    {
+                        field: "formula_text",
+                        headerName: "Formula Text",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 180,
+                        editable: false,
+                        cellStyle: {'background-color': '#f8f9fa'},
+                        headerTooltip: "Formula calculation text"
+                    }
+                ]
+            },
+            {
+                headerName: "Item Properties",
+                children: [
+                    { 
+                        field: "item_type", 
+                        headerName: "Item Type", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 120,
+                        editable: true,
+                        cellEditor: 'agSelectCellEditor',
+                        cellEditorParams: {
+                            values: ['Product', 'Quote', 'Attribute']
+                        },
+                        cellStyle: {'background-color': '#fff3cd'},
+                        headerTooltip: "Type of item (Product, Quote, or Attribute)"
+                    },
+                    { 
+                        field: "qty_type", 
+                        headerName: "Quantity Type", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 130,
+                        editable: true,
+                        cellEditor: 'agSelectCellEditor',
+                        cellEditorParams: {
+                            values: ['Count', 'Area', 'Length', 'Volume', 'Weight', 'Custom']
+                        },
+                        cellStyle: {'background-color': '#f0f8f0'},
+                        headerTooltip: "Type of quantity measurement"
+                    },
+                    { 
+                        field: "default_unit", 
+                        headerName: "Default Unit", 
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 120,
+                        editable: true,
+                        cellEditor: 'agSelectCellEditor',
+                        cellEditorParams: {
+                            values: ['EA', 'SF', 'LF', 'CF', 'SY', 'LB', 'TON', 'GAL', 'HR', 'LS']
+                        },
+                        cellStyle: {'background-color': '#f0f8f0'},
+                        headerTooltip: "Default unit of measure"
+                    }
+                ]
+            },
+            {
+                headerName: "Metadata",
+                children: [
+                    {
+                        field: "created_date",
+                        headerName: "Created",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 120,
+                        editable: false,
+                        cellStyle: {'background-color': '#f8f9fa'},
+                        valueFormatter: params => params.value ? new Date(params.value).toLocaleDateString() : '',
+                        headerTooltip: "When this item was created"
+                    },
+                    {
+                        field: "modified_date",
+                        headerName: "Modified",
+                        filter: 'agSetColumnFilter',
+                        filterParams: {
+                            buttons: ['reset', 'apply'],
+                            closeOnApply: true,
+                            suppressSelectAll: false,
+                            newRowsAction: 'keep'
+                        },
+                        width: 120,
+                        editable: false,
+                        cellStyle: {'background-color': '#f8f9fa'},
+                        valueFormatter: params => params.value ? new Date(params.value).toLocaleDateString() : '',
+                        headerTooltip: "When this item was last modified"
+                    }
+                ]
+            }
+        ];
+
+        // Enterprise grid options with high-performance features
+        const gridOptions = {
+            columnDefs: columnDefs,
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true,
+                editable: false,
+                enableRowGroup: true,
+                enablePivot: true,
+                enableValue: true,
+                suppressMenu: false,
+                floatingFilter: true,
+                // Enhanced filtering
+                filterParams: {
+                    buttons: ['apply', 'clear', 'reset', 'cancel'],
+                    closeOnApply: true,
+                    debounceMs: 200,
+                    suppressAndOrCondition: false,
+                    excelMode: 'windows'
+                },
+                // Improved tooltips
+                tooltipComponent: 'customTooltip',
+                tooltipShowDelay: 100,
+                tooltipHideDelay: 2000,
+                // Better cell rendering
+                cellRenderer: 'agAnimateShowChangeCellRenderer',
+                cellStyle: { padding: '4px 8px' }
+            },
+            // Performance optimizations
+            rowBuffer: 100,
+            cacheQuickFilter: true,
+            suppressPropertyNamesCheck: true,
+            // Enhanced features
+            enableRangeSelection: true,
+            enableFillHandle: true,
+            enableCellChangeFlash: true,
+            rowSelection: 'multiple',
+            rowMultiSelectWithClick: true,
+            groupSelectsChildren: true,
+            groupSelectsFiltered: true,
+            autoGroupColumnDef: {
+                minWidth: 200,
+                pinned: 'left'
+            },
+            // Enhanced clipboard operations
+            enableRangeSelection: true,
+            enableRangeHandle: true,
+            enableFillHandle: true,
+            clipboardDelimiter: '\t',
+            processDataFromClipboard: (params) => {
+                // Validate and clean clipboard data
+                return params.data.map(row => {
+                    return Object.keys(row).reduce((acc, key) => {
+                        acc[key] = typeof row[key] === 'string' ? row[key].trim() : row[key];
+                        return acc;
+                    }, {});
+                });
+            },
+            // Enterprise features
+            sideBar: {
+                toolPanels: [
+                    {
+                        id: 'columns',
+                        labelDefault: 'Columns',
+                        labelKey: 'columns',
+                        iconKey: 'columns',
+                        toolPanel: 'agColumnsToolPanel',
+                        toolPanelParams: {
+                            suppressRowGroups: false,
+                            suppressValues: false,
+                            suppressPivots: false,
+                            suppressPivotMode: false,
+                            suppressColumnFilter: false,
+                            suppressColumnSelectAll: false,
+                            suppressColumnExpandAll: false
+                        }
+                    },
+                    {
+                        id: 'filters',
+                        labelDefault: 'Filters',
+                        labelKey: 'filters',
+                        iconKey: 'filter',
+                        toolPanel: 'agFiltersToolPanel'
+                    }
+                ],
+                defaultToolPanel: 'columns',
+                hiddenByDefault: false
+            },
+            statusBar: {
+                statusPanels: [
+                    { statusPanel: 'agTotalAndFilteredRowCountComponent' },
+                    { statusPanel: 'agSelectedRowCountComponent' },
+                    { statusPanel: 'agAggregationComponent' }
+                ]
+            },
+            pagination: true,
+            paginationPageSize: 100,
+            paginationAutoPageSize: false,
+            animateRows: animationsEnabled,
+            suppressAnimationFrame: !animationsEnabled,
+            enableBrowserTooltips: false,
+            rowGroupPanelShow: 'always',
+            pivotPanelShow: 'always',
+            // Event handlers
+            onGridReady: onGridReady,
+            onFilterChanged: updateRowCount,
+            onSelectionChanged: updateRowCount,
+            onCellValueChanged: onCellValueChanged,
+            onRowDataChanged: updateRowCount,
+            undoRedoCellEditing: true,
+            undoRedoCellEditingLimit: 100,
+            getContextMenuItems: getContextMenuItems,
+            processDataFromClipboard: processClipboardData,
+            getRowId: (params) => params.data.item_id,
+            getRowStyle: function(params) {
+                if (modifiedRows.has(params.data.item_id)) {
+                    return { 'background-color': '#fff3cd' };
+                }
+                return null;
+            }
+        };
+
+        // Initialize grid when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const gridDiv = document.querySelector('#itemsGrid');
+            new agGrid.Grid(gridDiv, gridOptions);
+            
+            // Setup file drop zone
+            setupFileDropZone();
+        });
+
+        // Grid ready event
+        function onGridReady(params) {
+            gridApi = params.api;
+            console.log('Items grid ready, loading data...');
+            loadDropdownData();
+            loadGridData();
+        }
+
+        // Load dropdown data for editors
+        function loadDropdownData() {
+            // Load cost codes
+            fetch('/api/cost-codes')
+                .then(response => response.json())
+                .then(data => {
+                    allCostCodes = data;
+                })
+                .catch(error => console.error('Error loading cost codes:', error));
+
+            // Load formulas
+            fetch('/api/formulas')
+                .then(response => response.json())
+                .then(data => {
+                    allFormulas = data;
+                })
+                .catch(error => console.error('Error loading formulas:', error));
+        }
+
+        // Load main grid data
+        function loadGridData() {
+            showStatusMessage('Loading items data...', 'info');
+            
+            fetch('/api/items-detailed')
+                .then(response => response.json())
+                .then(data => {
+                    gridData = data;
+                    gridApi.setRowData(data);
+                    updateRowCount();
+                    showStatusMessage(`Loaded ${data.length} items successfully`, 'success');
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    showStatusMessage('Error loading items data', 'danger');
+                });
+        }
+
+        // Cell value changed handler
+        function onCellValueChanged(event) {
+            const { data, colDef, newValue, oldValue } = event;
+            console.log(`Cell changed: ${colDef.field} from "${oldValue}" to "${newValue}"`);
+            
+            // Mark row as modified
+            modifiedRows.add(data.item_id);
+            updateRowCount();
+            
+            // Handle cost code changes
+            if (colDef.field === 'cost_code') {
+                updateCostCodeDescription(data, newValue);
+            }
+            
+            // Handle formula changes
+            if (colDef.field === 'formula_name') {
+                updateFormulaText(data, newValue);
+            }
+        }
+
+        // Update cost code description when cost code changes
+        function updateCostCodeDescription(rowData, newCostCode) {
+            const costCode = allCostCodes.find(cc => cc.cost_code === newCostCode);
+            if (costCode) {
+                rowData.cost_code_description = costCode.cost_code_description;
+                // Refresh the row to show updated description
+                const rowNode = gridApi.getRowNode(rowData.item_id);
+                if (rowNode) {
+                    rowNode.setData(rowData);
+                }
+            }
+        }
+
+        // Update formula text when formula changes
+        function updateFormulaText(rowData, newFormulaName) {
+            const formula = allFormulas.find(f => f.formula_name === newFormulaName);
+            if (formula) {
+                rowData.formula_text = formula.formula_text;
+                // Refresh the row to show updated formula text
+                const rowNode = gridApi.getRowNode(rowData.item_id);
+                if (rowNode) {
+                    rowNode.setData(rowData);
+                }
+            }
+        }
+
+        // Update row count display
+        function updateRowCount() {
+            const totalRows = gridApi ? gridApi.getDisplayedRowCount() : 0;
+            const selectedRows = gridApi ? gridApi.getSelectedRows().length : 0;
+            const filteredRows = gridApi ? gridApi.getModel().getRowCount() : 0;
+            
+            document.getElementById('rowCount').textContent = totalRows;
+            document.getElementById('selectedCount').textContent = selectedRows;
+            document.getElementById('filteredCount').textContent = filteredRows;
+            document.getElementById('modifiedCount').textContent = modifiedRows.size;
+        }
+
+        // Show status message
+        function showStatusMessage(message, type = 'info') {
+            const container = document.getElementById('statusMessages');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            container.appendChild(alertDiv);
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Performance Functions
+        function toggleVirtualization() {
+            virtualizationEnabled = !virtualizationEnabled;
+            const btn = document.getElementById('virtualizationBtn');
+            btn.innerHTML = `<i class="fas fa-layer-group"></i> Row Virtualization: ${virtualizationEnabled ? 'ON' : 'OFF'}`;
+            btn.className = virtualizationEnabled ? 'btn btn-outline-primary' : 'btn btn-outline-secondary';
+            
+            gridApi.setRowBuffer(virtualizationEnabled ? 100 : 0);
+            showStatusMessage(`Row virtualization ${virtualizationEnabled ? 'enabled' : 'disabled'}`, 'info');
+        }
+
+        function toggleAnimations() {
+            animationsEnabled = !animationsEnabled;
+            const btn = document.getElementById('animationsBtn');
+            btn.innerHTML = `<i class="fas fa-magic"></i> Animations: ${animationsEnabled ? 'ON' : 'OFF'}`;
+            btn.className = animationsEnabled ? 'btn btn-outline-primary' : 'btn btn-outline-secondary';
+            
+            gridApi.setAnimateRows(animationsEnabled);
+            showStatusMessage(`Animations ${animationsEnabled ? 'enabled' : 'disabled'}`, 'info');
+        }
+
+        function enableHighPerformanceMode() {
+            virtualizationEnabled = true;
+            animationsEnabled = false;
+            
+            gridApi.setRowBuffer(200);
+            gridApi.setAnimateRows(false);
+            gridApi.setSuppressAnimationFrame(true);
+            
+            document.getElementById('virtualizationBtn').innerHTML = '<i class="fas fa-layer-group"></i> Row Virtualization: ON';
+            document.getElementById('animationsBtn').innerHTML = '<i class="fas fa-magic"></i> Animations: OFF';
+            
+            showStatusMessage('High Performance Mode enabled - optimized for large datasets', 'success');
+        }
+
+        // Excel-like toolbar functions
+        function copySelectedCells() {
+            if (gridApi) {
+                gridApi.copySelectedRangeToClipboard();
+                showStatusMessage('Copied selected cells to clipboard', 'success');
+            }
+        }
+
+        function pasteFromClipboard() {
+            if (gridApi) {
+                gridApi.pasteFromClipboard();
+                showStatusMessage('Paste operation completed', 'success');
+            }
+        }
+
+        function addNewItem() {
+            const newItem = {
+                item_id: null, // Will be assigned by database
+                item_name: '',
+                cost_code: '',
+                cost_code_description: '',
+                formula_name: '',
+                formula_text: '',
+                qty_type: 'Count',
+                default_unit: 'EA',
+                created_date: new Date().toISOString(),
+                modified_date: new Date().toISOString()
+            };
+            
+            gridApi.applyTransaction({ add: [newItem], addIndex: 0 });
+            showStatusMessage('New item row added', 'success');
+        }
+
+        function deleteSelectedItems() {
+            const selectedRows = gridApi.getSelectedRows();
+            if (selectedRows.length === 0) {
+                showStatusMessage('No items selected for deletion', 'warning');
+                return;
+            }
+            
+            if (confirm(`Delete ${selectedRows.length} selected items?`)) {
+                gridApi.applyTransaction({ remove: selectedRows });
+                showStatusMessage(`Deleted ${selectedRows.length} items`, 'success');
+            }
+        }
+
+        function undoEdit() {
+            if (gridApi) {
+                gridApi.undoCellEditing();
+                showStatusMessage('Undo completed', 'info');
+            }
+        }
+
+        function redoEdit() {
+            if (gridApi) {
+                gridApi.redoCellEditing();
+                showStatusMessage('Redo completed', 'info');
+            }
+        }
+
+        function saveAllChanges() {
+            if (modifiedRows.size === 0) {
+                showStatusMessage('No changes to save', 'info');
+                return;
+            }
+            
+            showStatusMessage(`Saving ${modifiedRows.size} modified items...`, 'info');
+            
+            const modifiedData = [];
+            modifiedRows.forEach(itemId => {
+                const rowNode = gridApi.getRowNode(itemId);
+                if (rowNode) {
+                    modifiedData.push(rowNode.data);
+                }
+            });
+            
+            fetch('/api/items/bulk-update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ updates: modifiedData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    modifiedRows.clear();
+                    updateRowCount();
+                    showStatusMessage(data.message, 'success');
+                    refreshGrid();
+                } else {
+                    showStatusMessage(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving changes:', error);
+                showStatusMessage('Error saving changes', 'danger');
+            });
+        }
+
+        // Grid control functions
+        function refreshGrid() {
+            loadGridData();
+        }
+
+        function exportToExcel() {
+            if (gridApi) {
+                const selectedRows = gridApi.getSelectedRows();
+                const exportParams = {
+                    fileName: 'items_export.xlsx',
+                    sheetName: 'Items',
+                    columnGroups: true,
+                    skipColumnGroupHeaders: false,
+                    skipColumnHeaders: false,
+                    onlySelected: selectedRows.length > 0,
+                    allColumns: true,
+                    appendContent: true,
+                    processHeaderName: function(params) {
+                        return params.column.getColDef().headerName;
+                    },
+                    processCellCallback: function(params) {
+                        if (params.value instanceof Date) {
+                            return params.value.toLocaleDateString();
+                        }
+                        return params.value;
+                    },
+                    customHeader: [
+                        [],
+                        [
+                            {
+                                styleId: 'header',
+                                data: { type: 'String', value: 'Items Export' }
+                            }
+                        ],
+                        []
+                    ]
+                };
+                
+                gridApi.exportDataAsExcel(exportParams);
+                showStatusMessage(`Excel export completed${selectedRows.length > 0 ? ' (Selected rows only)' : ''}`, 'success');
+            }
+        }
+
+        function exportToCSV() {
+            if (gridApi) {
+                gridApi.exportDataAsCsv({
+                    fileName: 'items_export.csv',
+                    columnSeparator: ',',
+                    suppressQuotes: false
+                });
+                showStatusMessage('CSV export completed', 'success');
+            }
+        }
+
+        function clearAllFilters() {
+            if (gridApi) {
+                gridApi.setFilterModel(null);
+                showStatusMessage('All filters cleared', 'info');
+            }
+        }
+
+        function fitColumns() {
+            if (gridApi) {
+                gridApi.sizeColumnsToFit();
+                showStatusMessage('Columns fitted to width', 'info');
+            }
+        }
+
+        function autoSizeColumns() {
+            if (gridApi) {
+                gridApi.autoSizeAllColumns();
+                showStatusMessage('Columns auto-sized', 'info');
+            }
+        }
+
+        function showColumnChooser() {
+            if (gridApi) {
+                gridApi.openToolPanel('columns');
+                showStatusMessage('Column chooser opened', 'info');
+            }
+        }
+
+        function showChartBuilder() {
+            if (gridApi) {
+                const selectedRows = gridApi.getSelectedRows();
+                if (selectedRows.length > 0) {
+                    gridApi.chartRange({
+                        chartType: 'column',
+                        cellRange: {
+                            columns: ['item_name', 'cost_code']
+                        }
+                    });
+                } else {
+                    showStatusMessage('Select rows to create a chart', 'warning');
+                }
+            }
+        }
+
+        function showPivotMode() {
+            if (gridApi) {
+                const isPivotMode = gridApi.isPivotMode();
+                gridApi.setPivotMode(!isPivotMode);
+                showStatusMessage(`Pivot mode ${!isPivotMode ? 'enabled' : 'disabled'}`, 'info');
+            }
+        }
+
+        // Context menu items
+        function getContextMenuItems(params) {
+            return [
+                'copy',
+                'paste',
+                'separator',
+                {
+                    name: 'Export Selected',
+                    action: function() {
+                        const selectedRows = gridApi.getSelectedRows();
+                        if (selectedRows.length > 0) {
+                            exportToExcel();
+                        } else {
+                            showStatusMessage('No rows selected for export', 'warning');
+                        }
+                    }
+                },
+                {
+                    name: 'Add New Item',
+                    action: function() {
+                        addNewItem();
+                    }
+                },
+                'separator',
+                'chartRange'
+            ];
+        }
+
+        // Process clipboard data
+        function processClipboardData(params) {
+            return params.data;
+        }
+
+        // Excel Import Functions
+        function showImportModal() {
+            const modal = new bootstrap.Modal(document.getElementById('importModal'));
+            modal.show();
+        }
+
+        function setupFileDropZone() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileSelection(files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    handleFileSelection(e.target.files[0]);
+                }
+            });
+        }
+
+        function handleFileSelection(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    processImportData(jsonData);
+                } catch (error) {
+                    console.error('Error reading file:', error);
+                    showStatusMessage('Error reading Excel file', 'danger');
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processImportData(rawData) {
+            if (rawData.length === 0) {
+                showStatusMessage('No data found in file', 'warning');
+                return;
+            }
+
+            const hasHeaderRow = document.getElementById('hasHeaderRow').checked;
+            let headers = hasHeaderRow ? rawData[0] : ['Column1', 'Column2', 'Column3', 'Column4', 'Column5'];
+            const dataRows = hasHeaderRow ? rawData.slice(1) : rawData;
+
+            // Map Excel headers to grid columns
+            const columnMapping = {
+                'Item Name': 'item_name',
+                'Cost Code': 'cost_code',
+                'Item Type': 'item_type',
+                'Quantity Type': 'qty_type',
+                'Default Unit': 'default_unit',
+                'Formula': 'formula_name'
+            };
+
+            // Clean and standardize headers
+            headers = headers.map(header => {
+                const standardHeader = columnMapping[header] || header.toLowerCase().replace(/\s+/g, '_');
+                return standardHeader;
+            });
+
+            // Convert to objects with data validation
+            importData = dataRows.map((row, rowIndex) => {
+                const obj = {};
+                headers.forEach((header, index) => {
+                    let value = row[index];
+                    
+                    // Data type validation and conversion
+                    if (header === 'item_id' && value) {
+                        value = parseInt(value);
+                    } else if (header === 'created_date' || header === 'modified_date') {
+                        value = value ? new Date(value).toISOString() : new Date().toISOString();
+                    }
+                    
+                    obj[header] = value || '';
+                });
+                
+                // Add metadata
+                obj.row_index = rowIndex + 2; // Account for header row
+                obj.validation_errors = [];
+                
+                // Basic validation
+                if (!obj.item_name) {
+                    obj.validation_errors.push('Item Name is required');
+                }
+                if (obj.cost_code && !allCostCodes.find(cc => cc.cost_code === obj.cost_code)) {
+                    obj.validation_errors.push('Invalid Cost Code');
+                }
+                
+                return obj;
+            });
+
+            // Show preview
+            showImportPreview(importData);
+        }
+
+        function showImportPreview(data) {
+            document.getElementById('importPreview').style.display = 'block';
+            document.getElementById('importBtn').style.display = 'inline-block';
+
+            // Create preview grid
+            const previewColumnDefs = Object.keys(data[0] || {}).map(key => ({
+                field: key,
+                headerName: key,
+                editable: true,
+                filter: true
+            }));
+
+            const previewGridOptions = {
+                columnDefs: previewColumnDefs,
+                rowData: data.slice(0, 100), // Show first 100 rows
+                defaultColDef: {
+                    sortable: true,
+                    resizable: true,
+                    width: 150
+                },
+                pagination: true,
+                paginationPageSize: 20
+            };
+
+            const previewGridDiv = document.getElementById('previewGrid');
+            if (previewGridApi) {
+                previewGridApi.destroy();
+            }
+            previewGridApi = new agGrid.Grid(previewGridDiv, previewGridOptions);
+        }
+
+        function performImport() {
+            const updateExisting = document.getElementById('updateExisting').checked;
+            const validateData = document.getElementById('validateData').checked;
+            const skipErrors = document.getElementById('skipErrors').checked;
+
+            showStatusMessage('Processing import...', 'info');
+
+            const importPayload = {
+                data: importData,
+                options: {
+                    updateExisting: updateExisting,
+                    validateData: validateData,
+                    skipErrors: skipErrors
+                }
+            };
+
+            fetch('/api/items/import', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(importPayload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('importResults').style.display = 'block';
+                    document.getElementById('importSummary').textContent = data.message;
+                    showStatusMessage(data.message, 'success');
+                    refreshGrid();
+                } else {
+                    showStatusMessage(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error importing data:', error);
+                showStatusMessage('Error importing data', 'danger');
+            });
+        }
+    </script>
+</body>
+</html>

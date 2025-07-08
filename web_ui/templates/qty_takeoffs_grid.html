@@ -1,0 +1,861 @@
+{% extends "base.html" %}
+
+{% block title %}Qty Takeoffs - Simonini Grid{% endblock %}
+
+{% block page_title %}📊 Qty Takeoffs{% endblock %}
+
+{% block toolbar_right %}
+    <a href="/" class="btn" style="background: #6c757d; margin-right: 15px;">🏠 Dashboard</a>
+    <button type="button" class="btn" onclick="saveChanges()">💾 Save Changes</button>
+    <button type="button" class="btn" onclick="addNewRow()">➕ Add New</button>
+    <button type="button" class="btn" onclick="refreshGrid()">🔄 Refresh</button>
+    <button type="button" class="btn btn-danger" onclick="deleteSelectedRows()">🗑️ Delete Selected</button>
+    <div class="btn-group" style="margin-left: 10px;">
+        <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown">📊 Export</button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="exportToExcel()">📈 Export Excel</a></li>
+            <li><a class="dropdown-item" href="#" onclick="exportToCsv()">📊 Export CSV</a></li>
+        </ul>
+    </div>
+    <div class="btn-group">
+        <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown">📥 Import</button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="downloadTemplate('excel')">📋 Download Excel Template</a></li>
+            <li><a class="dropdown-item" href="#" onclick="downloadTemplate('csv')">📋 Download CSV Template</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" onclick="triggerImport()">📥 Import File</a></li>
+        </ul>
+    </div>
+{% endblock %}
+
+{% block head %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 400px;
+        }
+        .btn-group .btn {
+            margin-left: 0;
+        }
+        .dropdown-menu {
+            background: var(--white);
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .dropdown-item {
+            color: var(--text);
+            padding: 8px 16px;
+        }
+        .dropdown-item:hover {
+            background: var(--offwhite);
+            color: var(--navy);
+        }
+        .grid-info {
+            background: var(--white);
+            padding: 16px 32px;
+            margin: 0 auto 2rem auto;
+            max-width: 1400px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(24,38,65,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #666;
+        }
+        #fileInput {
+            display: none;
+        }
+        .summary-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(24,38,65,0.07);
+            padding: 6px 14px;
+            min-width: 120px;
+            max-width: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 0.25rem;
+        }
+        .summary-card-title {
+            font-size: 12px;
+            color: #444;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        .summary-card-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1c7c54;
+            white-space: nowrap;
+        }
+    </style>
+{% endblock %}
+
+{% block grid %}
+    <div id="statusMessage" class="status-message"></div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFileImport(event)">
+    <div style="display: flex; align-items: center; max-width: 1400px; margin: 0 auto 0.5rem auto;">
+        <button id="toggleSummaryBtn" class="btn btn-outline-secondary btn-sm" style="margin-right: 1rem;" onclick="toggleSummaryCards()">Hide Summary</button>
+        <span style="color: #888; font-size: 13px;">Show/hide summary cards</span>
+    </div>
+    <div id="summaryCardsRow" style="display: flex; flex-wrap: wrap; gap: 1rem; margin: 0 auto 1rem auto; max-width: 1400px;"></div>
+    <div style="max-width: 1400px; margin: 0 auto 1rem auto; display: flex; align-items: center;">
+        <input id="globalFilterInput" type="text" class="form-control" style="max-width: 350px; margin-right: 1rem;" placeholder="🔎 Filter any column..." oninput="onGlobalFilterChanged()">
+        <span style="color: #888; font-size: 13px;">Type to filter all columns</span>
+    </div>
+    <div class="grid-info">
+        <div>
+            <span id="rowCount">0</span> records | 
+            <span id="selectedCount">0</span> selected |
+            <span id="filteredCount">0</span> filtered
+        </div>
+        <div>
+            Double-click to edit | Right-click for context menu | Ctrl+S to save
+        </div>
+    </div>
+    <div id="qtyTakeoffsGrid" class="ag-theme-alpine" style="height: 650px; width: 100%;"></div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.2.0/dist/ag-grid-enterprise.min.js"></script>
+    <script>
+        // Show/hide summary cards logic
+        function toggleSummaryCards() {
+            const summaryDiv = document.getElementById('summaryCardsRow');
+            const btn = document.getElementById('toggleSummaryBtn');
+            if (summaryDiv.style.display === 'none') {
+                summaryDiv.style.display = 'flex';
+                btn.textContent = 'Hide Summary';
+            } else {
+                summaryDiv.style.display = 'none';
+                btn.textContent = 'Show Summary';
+            }
+        }
+        // AG-Grid License Key from Flask config
+        const AG_GRID_LICENSE_KEY = '{{ config.AG_GRID_LICENSE_KEY }}';
+        if (AG_GRID_LICENSE_KEY && AG_GRID_LICENSE_KEY.length > 50) {
+            agGrid.LicenseManager.setLicenseKey(AG_GRID_LICENSE_KEY);
+        }
+
+        let gridApi;
+        let gridColumnApi;
+        let modifiedRows = [];
+
+        // Dropdown data holders
+        let costCodes = [];
+        let vendors = [];
+        let unitOfMeasures = ['EA', 'LF', 'SF', 'SY', 'CF', 'TON', 'HR', 'LS', 'DAY', 'WK', 'MO'];
+        let plans = [];
+        let planOptions = [];
+        let planOptionChoices = []; // Array for plan option dropdown with formatted labels
+        let items = [];
+        let itemDescriptions = {};
+
+        // Product dropdown data
+        let productChoices = []; // All products for dropdown
+        let productChoicesByCostCode = {}; // Map: cost_code_id -> [products]
+
+        // Custom cell editor for item description that shows options based on selected item name
+        class ItemDescriptionCellEditor {
+            init(params) {
+                this.params = params;
+                this.eInput = document.createElement('select');
+                this.eInput.style.width = '100%';
+                this.eInput.style.height = '100%';
+                
+                // Get the item_name from the current row
+                const itemName = params.data.item_name;
+                const descriptions = itemDescriptions[itemName] || [];
+                
+                // Add a blank option
+                const blankOption = document.createElement('option');
+                blankOption.value = '';
+                blankOption.text = '';
+                this.eInput.appendChild(blankOption);
+                
+                // Add description options for this item
+                descriptions.forEach(desc => {
+                    const option = document.createElement('option');
+                    option.value = desc;
+                    option.text = desc;
+                    this.eInput.appendChild(option);
+                });
+                
+                // Set current value
+                if (params.value) {
+                    this.eInput.value = params.value;
+                }
+                
+                // Make it editable (allow free text)
+                this.eInput.addEventListener('blur', () => {
+                    // If user typed something not in the list, add it as an option
+                    if (this.eInput.value && !Array.from(this.eInput.options).some(opt => opt.value === this.eInput.value)) {
+                        const newOption = document.createElement('option');
+                        newOption.value = this.eInput.value;
+                        newOption.text = this.eInput.value;
+                        newOption.selected = true;
+                        this.eInput.appendChild(newOption);
+                    }
+                });
+            }
+            
+            getGui() {
+                return this.eInput;
+            }
+            
+            getValue() {
+                return this.eInput.value;
+            }
+            
+            afterGuiAttached() {
+                this.eInput.focus();
+                this.eInput.select();
+            }
+            
+            destroy() {
+                // Cleanup if needed
+            }
+        }
+
+        // Custom cell editor for plan options
+        class PlanOptionCellEditor {
+            init(params) {
+                this.params = params;
+                this.eInput = document.createElement('select');
+                this.eInput.style.width = '100%';
+                this.eInput.style.height = '100%';
+                
+                // Add a blank option
+                const blankOption = document.createElement('option');
+                blankOption.value = '';
+                blankOption.text = '';
+                this.eInput.appendChild(blankOption);
+                
+                // Add plan option choices
+                planOptionChoices.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.value;
+                    option.text = opt.label;
+                    this.eInput.appendChild(option);
+                });
+                
+                // Set current value
+                if (params.value) {
+                    this.eInput.value = params.value;
+                }
+            }
+            
+            getGui() {
+                return this.eInput;
+            }
+            
+            getValue() {
+                return this.eInput.value;
+            }
+            
+            afterGuiAttached() {
+                this.eInput.focus();
+                this.eInput.select();
+            }
+            
+            destroy() {
+                // Cleanup if needed
+            }
+        }
+
+        // Column definitions based on v_comprehensive_takeoff_analysis (all 26 fields, with dynamic dropdowns)
+        // Added: Product column (editable dropdown, filtered by cost_code_id)
+        const columnDefs = [
+            {
+                headerName: "Actions",
+                field: "actions",
+                width: 60,
+                pinned: 'left',
+                suppressMenu: true,
+                suppressMovable: true,
+                cellRenderer: params => {
+                    // Use FontAwesome if available, else fallback to Unicode
+                    return `<button class="btn btn-link btn-sm duplicate-row-btn" title="Duplicate Row" style="padding:0 6px;">
+                        <i class="fa fa-copy" aria-hidden="true"></i>
+                    </button>`;
+                },
+                cellStyle: { textAlign: 'center' },
+                editable: false,
+                sortable: false,
+                filter: false
+            },
+            { headerName: "", checkboxSelection: true, headerCheckboxSelection: true, width: 40, pinned: 'left', suppressMenu: true, suppressMovable: true },
+            { headerName: "Takeoff ID", field: "takeoff_id", width: 100, editable: false, pinned: 'left' },
+            {
+                headerName: "Plan Option",
+                field: "plan_option_id",
+                width: 220,
+                editable: true,
+                cellEditor: PlanOptionCellEditor,
+                valueFormatter: params => {
+                    if (!params.value) return '';
+                    const found = planOptionChoices.find(x => x.value === params.value);
+                    return found ? found.label : params.value;
+                },
+                filterValueGetter: params => {
+                    if (!params.data || !params.data.plan_option_id) return '';
+                    const found = planOptions.find(
+                        x => x.plan_option_id === params.data.plan_option_id
+                    );
+                    return found ? `${found.plan_full_name} – ${found.option_name}` : params.data.plan_option_id;
+                }
+            },
+            {
+                headerName: "Cost Code",
+                field: "cost_code_id",
+                width: 120,
+                editable: true,
+                cellEditor: 'agSelectCellEditor',
+                cellEditorParams: () => ({
+                    values: costCodes.map(x => x.cost_code_id)
+                }),
+                valueFormatter: params => {
+                    if (!params.value) return '';
+                    const found = costCodes.find(x => x.cost_code_id === params.value);
+                    return found ? `${found.cost_code}` : params.value;
+                }
+            },
+            {
+                headerName: "Item Name",
+                field: "item_id",
+                width: 180,
+                editable: true,
+                cellEditor: 'agSelectCellEditor',
+                cellEditorParams: params => {
+                    const ccid = params.data.cost_code_id;
+                    if (!ccid) return { values: [] };
+                    // Only show items with matching cost_code_id
+                    const filtered = items.filter(i => i.cost_code_id === ccid);
+                    return { values: filtered.map(i => i.item_id) };
+                },
+                valueFormatter: params => {
+                    if (!params.value) return '';
+                    const found = items.find(i => i.item_id === params.value);
+                    return found ? found.item_name : params.value;
+                }
+            },
+            { headerName: "Item Description", field: "item_description", width: 220, editable: true, cellEditor: ItemDescriptionCellEditor },
+            { headerName: "Quantity Source", field: "quantity_source", width: 140, editable: true },
+            { headerName: "Calculated Qty", field: "calculated_quantity", width: 120, editable: false, type: 'numericColumn', valueFormatter: params => params.value != null ? params.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "" },
+            { headerName: "Quantity", field: "quantity", width: 100, editable: true, type: 'numericColumn' },
+            { headerName: "Unit Price", field: "unit_price", width: 120, editable: true, type: 'numericColumn' },
+            { headerName: "Price Factor", field: "price_factor", width: 120, editable: true, type: 'numericColumn' },
+            { headerName: "Unit of Measure", field: "unit_of_measure", width: 120, editable: true, cellEditor: 'agSelectCellEditor', cellEditorParams: () => ({ values: unitOfMeasures }) },
+            { headerName: "Extended Price", field: "extended_price", width: 140, editable: true, type: 'numericColumn' },
+            { headerName: "Vendor Name", field: "vendor_name", width: 160, editable: true, cellEditor: 'agSelectCellEditor', cellEditorParams: () => ({ values: vendors.map(v => v.vendor_name) }) },
+            { headerName: "Notes", field: "notes", width: 200, editable: true },
+            { headerName: "Job Name", field: "job_name", width: 160, editable: true },
+            { headerName: "Job Number", field: "job_number", width: 120, editable: true },
+            { headerName: "Lot Number", field: "lot_number", width: 120, editable: true },
+            { headerName: "Customer Name", field: "customer_name", width: 160, editable: true },
+            { headerName: "Spec Name", field: "spec_name", width: 140, editable: true },
+            { headerName: "Room", field: "room", width: 120, editable: true },
+            // Extra IDs at the end, not visible by default
+            { headerName: "Plan", field: "plan_full_name", width: 160, editable: true, hide: true, cellEditor: 'agSelectCellEditor', cellEditorParams: () => ({ values: plans.map(p => p.plan_name || p.plan_full_name) }) },
+            { headerName: "Job ID", field: "job_id", width: 100, editable: false, hide: true },
+            { headerName: "Product ID", field: "product_id", width: 100, editable: false, hide: true },
+            { headerName: "Vendor ID", field: "vendor_id", width: 100, editable: false, hide: true },
+            { headerName: "Item ID", field: "item_id", width: 100, editable: false, hide: true },
+            { headerName: "Cost Code ID", field: "cost_code_id", width: 100, editable: false, hide: true }
+        ];
+
+        const gridOptions = {
+            columnDefs: columnDefs,
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true,
+                editable: false,
+                cellEditor: 'agTextCellEditor',
+                enableRowGroup: true,
+                enablePivot: true,
+                enableValue: true,
+                suppressMenu: false,
+                floatingFilter: true,
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    miniFilter: true,
+                    applyMiniFilterWhileTyping: true,
+                }
+            },
+            enableRangeSelection: true,
+            enableFillHandle: true,
+            enableCellChangeFlash: true,
+            rowSelection: 'multiple',
+            rowMultiSelectWithClick: true,
+            suppressRowClickSelection: false,
+            enableCellTextSelection: true,
+            ensureDomOrder: true,
+            pagination: true,
+            paginationPageSize: 250,
+            paginationAutoPageSize: false,
+            stopEditingWhenCellsLoseFocus: true,
+            singleClickEdit: false,
+            sideBar: {
+                toolPanels: [
+                    {
+                        id: 'columns',
+                        labelDefault: 'Columns',
+                        labelKey: 'columns',
+                        iconKey: 'columns',
+                        toolPanel: 'agColumnsToolPanel'
+                    },
+                    {
+                        id: 'filters',
+                        labelDefault: 'Filters',
+                        labelKey: 'filters',
+                        iconKey: 'filter',
+                        toolPanel: 'agFiltersToolPanel'
+                    }
+                ],
+                defaultToolPanel: 'columns',
+                hiddenByDefault: false
+            },
+            suppressHorizontalScroll: false,
+            domLayout: 'normal',
+            rowGroupPanelShow: 'always',
+            pivotPanelShow: 'always',
+            statusBar: {
+                statusPanels: [
+                    { statusPanel: 'agTotalAndFilteredRowCountComponent' },
+                    { statusPanel: 'agSelectedRowCountComponent' },
+                    { statusPanel: 'agAggregationComponent' }
+                ]
+            },
+            onGridReady: onGridReady,
+            onCellValueChanged: onCellValueChanged,
+            onFilterChanged: updateRowCount,
+            onSelectionChanged: updateRowCount,
+            getContextMenuItems: getContextMenuItems,
+            getRowStyle: function(params) {
+                if (modifiedRows.includes(params.node.id)) {
+                    return { backgroundColor: '#ffe8a2' };
+                }
+                return null;
+            }
+        };
+
+        async function fetchDropdownData() {
+            // Fetch all dropdown data in parallel, including products for the Product dropdown
+            const [
+                costCodesRes,
+                vendorsRes,
+                plansRes,
+                planOptionsRes,
+                itemsRes,
+                itemDescRes,
+                productsRes
+            ] = await Promise.all([
+                fetch('/api/cost-codes').then(r => r.json()),
+                fetch('/api/vendors').then(r => r.json()),
+                fetch('/api/plans').then(r => r.json()),
+                fetch('/api/plan-options').then(r => r.json()),
+                fetch('/api/items').then(r => r.json()),
+                fetch('/api/items-with-descriptions').then(r => r.json()),
+                fetch('/api/products?for_dropdown=true').then(r => r.json())
+            ]);
+            costCodes = costCodesRes;
+            vendors = vendorsRes;
+            plans = plansRes;
+            planOptions = planOptionsRes;
+            // Build plan option choices array for the dropdown
+            planOptionChoices = planOptions.map(opt => ({
+                value: opt.plan_option_id,
+                label: `${opt.plan_full_name} – ${opt.option_name}`
+            }));
+            console.log('Loaded plan options:', planOptionChoices.length);
+
+            items = itemsRes;
+            itemDescriptions = itemDescRes;
+
+            // --- Product dropdown logic ---
+            productChoices = productsRes;
+            // Build a map: cost_code_id -> [products]
+            productChoicesByCostCode = {};
+            productChoices.forEach(prod => {
+                if (!prod.cost_code_id) return;
+                if (!productChoicesByCostCode[prod.cost_code_id]) {
+                    productChoicesByCostCode[prod.cost_code_id] = [];
+                }
+                productChoicesByCostCode[prod.cost_code_id].push(prod);
+            });
+            console.log('Loaded products:', productChoices.length);
+        }
+
+        function onGridReady(params) {
+            gridApi = params.api;
+            gridColumnApi = params.columnApi;
+            // Restore column layout if saved
+            const savedLayout = localStorage.getItem('qtyTakeoffsGridLayout');
+            if (savedLayout) {
+                try {
+                    const colState = JSON.parse(savedLayout);
+                    gridColumnApi.setColumnState(colState);
+                } catch (e) {
+                    console.warn('Failed to restore saved grid layout:', e);
+                }
+            }
+            fetchDropdownData().then(() => {
+                loadData();
+            });
+        }
+
+        function loadData() {
+            fetch('/api/qty-takeoffs')
+                .then(response => response.json())
+                .then(data => {
+                    gridApi.setRowData(data);
+                    updateRowCount();
+                });
+        }
+
+        function onCellValueChanged(event) {
+            const rowId = event.node.id;
+            if (!modifiedRows.includes(rowId)) {
+                modifiedRows.push(rowId);
+            }
+            gridApi.redrawRows({ rowNodes: [event.node] });
+            showStatus('Row modified. Click "Save Changes" to update database.', 'warning');
+        }
+
+        function updateRowCount() {
+            if (!gridApi) return;
+            const totalRows = gridApi.getDisplayedRowCount();
+            const selectedRows = gridApi.getSelectedRows().length;
+            const filteredRows = totalRows;
+            document.getElementById('rowCount').textContent = totalRows;
+            document.getElementById('selectedCount').textContent = selectedRows;
+            document.getElementById('filteredCount').textContent = filteredRows;
+            updateSummaryCards();
+        }
+
+        function updateSummaryCards() {
+            if (!gridApi) return;
+            const summaryDiv = document.getElementById('summaryCardsRow');
+            if (!summaryDiv) return;
+            // Get all filtered rows
+            const filteredRows = [];
+            gridApi.forEachNodeAfterFilterAndSort(node => {
+                filteredRows.push(node.data);
+            });
+            // Group by plan_full_name + option_name and sum extended_price
+            const summary = {};
+            filteredRows.forEach(row => {
+                const plan = row.plan_full_name || 'N/A';
+                const option = row.option_name || 'N/A';
+                const key = `${plan} ${option}`;
+                const price = parseFloat(row.extended_price) || 0;
+                if (!summary[key]) summary[key] = 0;
+                summary[key] += price;
+            });
+            // Render cards
+            summaryDiv.innerHTML = '';
+            Object.entries(summary).forEach(([label, sum]) => {
+                const card = document.createElement('div');
+                card.className = 'summary-card';
+                card.innerHTML = `
+                    <div class="summary-card-title">${label}</div>
+                    <div class="summary-card-value">$${sum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                `;
+                summaryDiv.appendChild(card);
+            });
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusMessage');
+            const alertClass = {
+                'success': 'alert-success',
+                'error': 'alert-danger',
+                'warning': 'alert-warning',
+                'info': 'alert-info'
+            }[type] || 'alert-info';
+            statusDiv.innerHTML = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    const alert = statusDiv.querySelector('.alert');
+                    if (alert) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            }
+        }
+
+        function onGlobalFilterChanged() {
+            const filterValue = document.getElementById('globalFilterInput').value;
+            if (gridApi) {
+                gridApi.setQuickFilter(filterValue);
+                updateRowCount();
+            }
+        }
+
+        function getContextMenuItems(params) {
+            const items = [
+                'copy',
+                'paste',
+                {
+                    name: 'Copy Row',
+                    action: function() {
+                        if (params.node && params.node.data) {
+                            const text = Object.values(params.node.data).join('\t');
+                            navigator.clipboard.writeText(text);
+                            showStatus('Row copied to clipboard', 'success');
+                        }
+                    }
+                },
+                {
+                    name: 'Paste Row (replace selected)',
+                    action: function() {
+                        if (gridApi && params.node) {
+                            navigator.clipboard.readText().then(text => {
+                                const values = text.split('\t');
+                                const fields = gridApi.getColumnDefs().map(col => col.field).filter(f => f);
+                                const newData = {};
+                                for (let i = 0; i < fields.length && i < values.length; i++) {
+                                    newData[fields[i]] = values[i];
+                                }
+                                // Always clear takeoff_id for pasted row
+                                newData['takeoff_id'] = null;
+                                params.node.setData(newData);
+                                showStatus('Row pasted from clipboard (new Takeoff ID will be assigned)', 'success');
+                            });
+                        }
+                    }
+                },
+                {
+                    name: 'Delete Row',
+                    action: function() {
+                        if (params.node) {
+                            gridApi.applyTransaction({ remove: [params.node.data] });
+                            showStatus('Row deleted', 'success');
+                        }
+                    }
+                },
+                'separator',
+                'export'
+            ];
+            return items;
+        }
+
+        function saveChanges() {
+            if (modifiedRows.length === 0) {
+                showStatus('No changes to save', 'info');
+                return;
+            }
+            const updates = [];
+            modifiedRows.forEach(rowId => {
+                const node = gridApi.getRowNode(rowId);
+                if (node) {
+                    updates.push(node.data);
+                }
+            });
+            fetch('/api/qty-takeoffs/bulk-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ updates: updates })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    modifiedRows = [];
+                    gridApi.redrawRows();
+                    showStatus(`Successfully updated ${updates.length} records`, 'success');
+                } else {
+                    showStatus('Error saving changes: ' + result.message, 'error');
+                }
+            })
+            .catch(error => {
+                showStatus('Error saving changes: ' + error.message, 'error');
+            });
+        }
+
+        function addNewRow() {
+            const newRow = {
+                takeoff_id: null,
+                plan_full_name: '',
+                option_name: '',
+                cost_code: '',
+                item_name: '',
+                item_description: '',
+                quantity_source: '',
+                quantity: ''
+            };
+            gridApi.applyTransaction({ add: [newRow], addIndex: 0 });
+            setTimeout(() => {
+                const firstNode = gridApi.getDisplayedRowAtIndex(0);
+                if (firstNode) {
+                    gridApi.startEditingCell({
+                        rowIndex: 0,
+                        colKey: 'plan_full_name'
+                    });
+                    modifiedRows.push(firstNode.id);
+                }
+            }, 100);
+            showStatus('New row added. Fill in the details and save.', 'info');
+        }
+
+        function refreshGrid() {
+            modifiedRows = [];
+            loadData();
+        }
+
+        function exportToExcel() {
+            window.location.href = '/api/qty-takeoffs/export/excel';
+            showStatus('Excel export started', 'success');
+        }
+
+        function exportToCsv() {
+            window.location.href = '/api/qty-takeoffs/export/csv';
+            showStatus('CSV export started', 'success');
+        }
+
+        function downloadTemplate(format) {
+            window.location.href = `/api/qty-takeoffs/template/${format}`;
+            showStatus(`${format.toUpperCase()} template download started`, 'success');
+        }
+
+        function triggerImport() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            showStatus('Importing file...', 'info');
+            fetch('/api/qty-takeoffs/import', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showStatus(result.message, 'success');
+                    refreshGrid();
+                } else {
+                    showStatus('Import failed: ' + result.message, 'error');
+                }
+            })
+            .catch(error => {
+                showStatus('Error importing file: ' + error.message, 'error');
+            });
+            event.target.value = '';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        saveChanges();
+                        break;
+                    case 'n':
+                        e.preventDefault();
+                        addNewRow();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        refreshGrid();
+                        break;
+                }
+            }
+        });
+
+        function deleteSelectedRows() {
+            if (!gridApi) return;
+            const selectedRows = gridApi.getSelectedRows();
+            if (selectedRows.length === 0) {
+                showStatus('No rows selected for deletion', 'warning');
+                return;
+            }
+            if (confirm(`Delete ${selectedRows.length} selected row(s)?`)) {
+                // Remove from UI immediately
+                gridApi.applyTransaction({ remove: selectedRows });
+                // Send to backend for deletion
+                const ids = selectedRows.map(row => row.takeoff_id).filter(id => id);
+                if (ids.length > 0) {
+                    fetch('/api/qty-takeoffs/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ takeoff_ids: ids })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            showStatus(`Deleted ${ids.length} row(s) from database`, 'success');
+                            refreshGrid();
+                        } else {
+                            showStatus('Error deleting rows: ' + result.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showStatus('Error deleting rows: ' + error.message, 'error');
+                    });
+                } else {
+                    showStatus(`Deleted ${selectedRows.length} row(s)`, 'success');
+                }
+            }
+        }
+
+        // (Removed saveGridLayout function)
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const gridDiv = document.getElementById('qtyTakeoffsGrid');
+            new agGrid.Grid(gridDiv, gridOptions);
+
+            // FontAwesome fallback: if not loaded, use Unicode icon
+            if (!document.querySelector('link[href*="font-awesome"]')) {
+                const faLink = document.createElement('link');
+                faLink.rel = 'stylesheet';
+                faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css';
+                document.head.appendChild(faLink);
+            }
+
+            // Delegate click for duplicate row button
+            gridDiv.addEventListener('click', function(e) {
+                if (e.target.closest('.duplicate-row-btn')) {
+                    const btn = e.target.closest('.duplicate-row-btn');
+                    // Find the row node
+                    const rowElem = btn.closest('.ag-row');
+                    if (!rowElem) return;
+                    // ag-Grid row index is in rowElem's row-index attribute
+                    const rowIndex = parseInt(rowElem.getAttribute('row-index'), 10);
+                    if (isNaN(rowIndex)) return;
+                    const node = gridApi.getDisplayedRowAtIndex(rowIndex);
+                    if (!node || !node.data) return;
+                    // Clone row data, clear unique IDs
+                    const newRow = { ...node.data };
+                    // Clear unique IDs (add more fields if needed)
+                    newRow.takeoff_id = null;
+                    newRow.job_id = null;
+                    newRow.product_id = null;
+                    newRow.vendor_id = null;
+                    // Insert below
+                    gridApi.applyTransaction({ add: [newRow], addIndex: rowIndex + 1 });
+                    showStatus('Row duplicated. Edit as needed and save.', 'info');
+                }
+            });
+        });
+    </script>
+{% endblock %}

@@ -18,14 +18,9 @@ import re
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Database connection settings
-DB_CONFIG = {
-    'host': 'localhost',
-    'port': 5432,
-    'database': 'takeoff_pricing_db',
-    'user': 'Jon',
-    'password': 'Transplant4real'
-}
+# Add parent directory to path to import config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import DB_CONFIG_DICT as DB_CONFIG
 
 class TakeoffDataLoader:
     def __init__(self):

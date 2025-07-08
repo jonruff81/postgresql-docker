@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+    .btn-purple {
+        background-color: #6f42c1;
+        border-color: #6f42c1;
+        color: white;
+    }
+    .btn-purple:hover {
+        background-color: #5e35b1;
+        border-color: #5e35b1;
+        color: white;
+    }
+    .text-purple {
+        color: #6f42c1;
+    }
+    .border-purple {
+        border-color: #6f42c1 !important;
+    }
+    .bg-purple {
+        background-color: #6f42c1;
+    }
+</style>
+{% endblock %}
+
+{% block title %}Dashboard - PostgreSQL Takeoff Database{% endblock %}
+{% block page_title %}Database Dashboard{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- System Status -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-info-circle"></i> System Status
+                </h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <i class="bi bi-database-check text-success" style="font-size: 2rem;"></i>
+                            <h6 class="mt-2">Database</h6>
+                            <small class="text-success">Connected</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <i class="bi bi-grid-3x3 text-primary" style="font-size: 2rem;"></i>
+                            <h6 class="mt-2">AG-Grid Views</h6>
+                            <strong>5</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <i class="bi bi-tools text-info" style="font-size: 2rem;"></i>
+                            <h6 class="mt-2">Features</h6>
+                            <small class="text-muted">Cost Management</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <i class="bi bi-clock-history text-warning" style="font-size: 2rem;"></i>
+                            <h6 class="mt-2">Last Updated</h6>
+                            <small>{{ "Dec 25, 2024" }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AG-Grid Views - Button Layout -->
+<div class="row mb-5">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-grid-3x3"></i> AG-Grid Data Views (Button Layout)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <!-- Cost Codes Grid Button -->
+                    <a href="/cost-codes-grid" class="btn btn-lg btn-success d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-calculator me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Cost Codes Grid</strong>
+                                <br>
+                                <small class="opacity-75">Manage cost codes and groups with full editing capabilities</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Vendor Pricing Grid Button -->
+                    <a href="/vendor-pricing-grid" class="btn btn-lg btn-primary d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-currency-dollar me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Vendor Pricing Grid</strong>
+                                <br>
+                                <small class="opacity-75">View and analyze current vendor pricing with cost codes</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Quotes Grid Button -->
+                    <a href="/quotes-grid" class="btn btn-lg btn-warning d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-file-earmark-text me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Quotes Management Grid</strong>
+                                <br>
+                                <small class="opacity-75">Manage vendor quotes with pricing, plan options, and file uploads</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Comprehensive Takeoff Analysis Grid Button -->
+                    <a href="/comprehensive-takeoff-grid" class="btn btn-lg btn-info d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-chart-line me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Comprehensive Takeoff Analysis</strong>
+                                <br>
+                                <small class="opacity-75">Complete takeoff analysis with plan options, cost codes, quantities, pricing, and vendor information</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Products Management Grid Button -->
+                    <a href="/products-grid" class="btn btn-lg btn-secondary d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-cube me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Products Management</strong>
+                                <br>
+                                <small class="opacity-75">Excel-like editing for products, items, cost codes, and vendor pricing with comparison tools</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Items Management Grid Button -->
+                    <a href="/items-grid" class="btn btn-lg btn-dark d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-gear me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Items Management (Enterprise)</strong>
+                                <br>
+                                <small class="opacity-75">High-performance items management with Excel import/export, enterprise features, and advanced editing</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Plans Performance Grid Button -->
+                    <a href="/plans-grid" class="btn btn-lg btn-purple d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-house me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Plans Performance Grid</strong>
+                                <br>
+                                <small class="opacity-75">High-performance grid for plan management with advanced filtering and grouping</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    
+                    <!-- Placeholder for future AG-Grid views -->
+                    <!--
+                    
+                    <a href="/takeoffs-grid" class="btn btn-lg btn-info d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-file-earmark-text me-3" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <strong>Takeoffs Grid</strong>
+                                <br>
+                                <small class="opacity-75">View and manage construction takeoff data</small>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right" style="font-size: 1.2rem;"></i>
+                    </a>
+                    -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AG-Grid Views - Card Layout -->
+<div class="row">
+    <div class="col-md-12">
+        <h5 class="mb-3">
+            <i class="bi bi-grid-3x3"></i> AG-Grid Data Views (Card Layout)
+        </h5>
+    </div>
+    
+    <!-- Cost Codes Grid Card -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-success shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-calculator text-success mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title">Cost Codes Grid</h5>
+                <p class="card-text text-muted">
+                    Comprehensive cost code management with integrated cost groups. 
+                    Edit, add, and organize your project cost structure.
+                </p>
+                <div class="mt-auto">
+                    <a href="/cost-codes-grid" class="btn btn-success">
+                        <i class="bi bi-grid-3x3"></i> Open Grid
+                    </a>
+                </div>
+            </div>
+            <div class="card-footer bg-success bg-opacity-10">
+                <small class="text-success">
+                    <i class="bi bi-check-circle"></i> Available Now
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vendor Pricing Grid Card -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-primary shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-currency-dollar text-primary mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title">Vendor Pricing Grid</h5>
+                <p class="card-text text-muted">
+                    View and analyze current vendor pricing with cost codes. 
+                    Comprehensive pricing data with advanced filtering and export capabilities.
+                </p>
+                <div class="mt-auto">
+                    <a href="/vendor-pricing-grid" class="btn btn-primary">
+                        <i class="bi bi-grid-3x3"></i> Open Grid
+                    </a>
+                </div>
+            </div>
+            <div class="card-footer bg-primary bg-opacity-10">
+                <small class="text-primary">
+                    <i class="bi bi-check-circle"></i> Available Now
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Placeholder cards for future AG-Grid views -->
+    <!--
+    
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-info shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text text-info mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title">Takeoffs Grid</h5>
+                <p class="card-text text-muted">
+                    View and manage construction takeoff data with advanced 
+                    filtering and bulk editing capabilities.
+                </p>
+                <div class="mt-auto">
+                    <a href="/takeoffs-grid" class="btn btn-info">
+                        <i class="bi bi-grid-3x3"></i> Open Grid
+                    </a>
+                </div>
+            </div>
+            <div class="card-footer bg-info bg-opacity-10">
+                <small class="text-info">
+                    <i class="bi bi-check-circle"></i> Available Now
+                </small>
+            </div>
+        </div>
+    </div>
+    -->
+    
+    <!-- Coming Soon placeholder cards -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-secondary shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-text text-secondary mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title text-muted">Takeoffs Grid</h5>
+                <p class="card-text text-muted">
+                    Coming soon - Comprehensive takeoff data management 
+                    with advanced analytics and reporting.
+                </p>
+                <div class="mt-auto">
+                    <button class="btn btn-outline-secondary" disabled>
+                        <i class="bi bi-hourglass-split"></i> Coming Soon
+                    </button>
+                </div>
+            </div>
+            <div class="card-footer bg-secondary bg-opacity-10">
+                <small class="text-secondary">
+                    <i class="bi bi-clock-history"></i> In Development
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Plans Performance Grid Card -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-purple shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-house text-purple mb-3" style="font-size: 3rem;"></i>
+                <h5 class="card-title">Plans Performance Grid</h5>
+                <p class="card-text text-muted">
+                    High-performance grid for plan management with advanced filtering,
+                    grouping, and Excel-like functionality.
+                </p>
+                <div class="mt-auto">
+                    <a href="/plans-grid" class="btn btn-purple">
+                        <i class="bi bi-grid-3x3"></i> Open Grid
+                    </a>
+                </div>
+            </div>
+            <div class="card-footer bg-purple bg-opacity-10">
+                <small class="text-purple">
+                    <i class="bi bi-check-circle"></i> Available Now
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Access Section -->
+<div class="row mt-5">
+    <div class="col-md-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-lightning-charge"></i> Quick Access
+                </h6>
+                <p class="card-text text-muted mb-3">
+                    Jump directly to your most-used data management tools.
+                </p>
+                <div class="btn-group" role="group">
+                    <a href="/cost-codes-grid" class="btn btn-warning">
+                        <i class="bi bi-calculator"></i> Cost Codes
+                    </a>
+                    <a href="/vendor-pricing-grid" class="btn btn-primary">
+                        <i class="bi bi-currency-dollar"></i> Vendor Pricing
+                    </a>
+                    <a href="/plans-grid" class="btn btn-purple">
+                        <i class="bi bi-house"></i> Plans Grid
+                    </a>
+                    <!-- Add more quick access buttons as new grids are created -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Add any dashboard-specific JavaScript here
+$(document).ready(function() {
+    console.log('Dashboard loaded successfully');
+    
+    // Optional: Add click tracking or other analytics
+    $('.btn[href]').on('click', function() {
+        const gridName = $(this).text().trim();
+        console.log(`Navigating to: ${gridName}`);
+    });
+});
+</script>
+{% endblock %}

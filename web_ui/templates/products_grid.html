@@ -1,0 +1,2521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products</title>
+    
+    <!-- AG Grid Enterprise CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@31.0.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@31.0.0/styles/ag-theme-alpine.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #0dcaf0;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+
+        .ag-theme-alpine {
+            font-size: 14px;
+            --ag-header-height: 48px;
+            --ag-row-height: 52px;
+            --ag-border-color: #e9ecef;
+            --ag-header-background-color: #f8f9fa;
+            --ag-odd-row-background-color: #fdfdfd;
+        }
+
+        .grid-container {
+            height: 70vh;
+            min-height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .product-cell {
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+        }
+
+        .product-image {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            margin-right: 12px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            background-color: #f8f9fa;
+        }
+
+        .product-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .product-category {
+            font-size: 11px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+
+        .price-cell {
+            font-weight: 600;
+            color: #198754;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .price-main {
+            font-size: 14px;
+        }
+
+        .price-change {
+            font-size: 10px;
+            margin-top: 2px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .price-increase {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .price-decrease {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+
+        .vendor-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .vendor-badge {
+            background-color: #e7f3ff;
+            color: #0066cc;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+
+        .toolbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .toolbar h2 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 28px;
+        }
+
+        .toolbar p {
+            margin: 8px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .filter-tabs {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tabs .btn {
+            border-radius: 25px;
+            padding: 8px 20px;
+            font-weight: 500;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .filter-tabs .btn.active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .controls-row {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: visible !important; /* Ensure dropdowns are clickable */
+        }
+        .dropdown-menu {
+            overflow: visible !important;
+            z-index: 2000 !important;
+        }
+
+        .search-box {
+            max-width: 350px;
+        }
+
+        .search-box .form-control {
+            border-radius: 25px;
+            padding: 12px 20px 12px 45px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .search-box .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        .search-box .input-group-text {
+            background: transparent;
+            border: none;
+            position: absolute;
+            left: 15px;
+            z-index: 10;
+            color: #6c757d;
+        }
+
+        .action-buttons-group .btn {
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-weight: 500;
+            margin-left: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .action-buttons-group .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .grid-stats {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .stats-left {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border-radius: 8px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .column-controls {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .column-toggle {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .column-toggle .form-check {
+            margin: 0;
+            padding: 4px 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .bulk-actions {
+            background: #fff3cd;
+            border: 1px solid #ffecb5;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .bulk-actions.show {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .ag-details-row {
+            background-color: #f8f9fa !important;
+        }
+
+        .ag-details-grid {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .ag-details-grid .ag-header {
+            background-color: #e9ecef;
+            font-weight: 600;
+        }
+
+        .ag-details-grid .ag-row {
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .ag-details-grid .ag-row:hover {
+            background-color: #f5f5f5;
+        }
+
+        @media (max-width: 768px) {
+            .grid-container {
+                height: 60vh;
+            }
+            
+            .toolbar {
+                padding: 16px;
+            }
+            
+            .toolbar h2 {
+                font-size: 24px;
+            }
+            
+            .controls-row {
+                padding: 16px;
+            }
+            
+            .filter-tabs {
+                justify-content: center;
+            }
+            
+            .action-buttons-group {
+                text-align: center;
+                margin-top: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-3">
+        <!-- Enhanced Header -->
+        <div class="toolbar">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2><i class="fas fa-boxes me-3"></i>Products</h2>
+                    <p>Comprehensive product catalog with pricing analysis and vendor management</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/" class="btn btn-light btn-lg">
+                        <i class="fas fa-arrow-left me-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- Enhanced Controls Row (MOVED OUTSIDE grid-container) -->
+    <div class="container-fluid py-3">
+        <div class="controls-row">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <div class="search-box">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" placeholder="Search products, brands, SKUs..."
+                                   onInput="onSearchChange(this.value)" id="searchInput">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="action-buttons-group text-end">
+                        <button class="btn btn-outline-secondary" onclick="toggleColumnControls()">
+                            <i class="fas fa-columns me-2"></i>Columns
+                        </button>
+                        <button class="btn btn-outline-info" onclick="showKeyboardShortcuts()">
+                            <i class="fas fa-keyboard me-2"></i>Shortcuts
+                        </button>
+                        <button class="btn btn-success" onclick="addBlankProductRow()">
+                            <i class="fas fa-plus me-2"></i>Add Product
+                        </button>
+                        <!-- AG-Grid Enterprise Import/Export/Template Buttons -->
+                        <button class="btn btn-outline-success" onclick="showAgGridImportDialog()">
+                            <i class="fas fa-upload me-2"></i>Import (Excel/CSV)
+                        </button>
+                        <button class="btn btn-info" onclick="exportAgGridExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Export Excel
+                        </button>
+                        <button class="btn btn-outline-info" onclick="exportAgGridCSV()">
+                            <i class="fas fa-file-csv me-2"></i>Export CSV
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="downloadAgGridTemplate()">
+                            <i class="fas fa-file-export me-2"></i>Download Template
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="refreshGrid()">
+                            <i class="fas fa-sync me-2"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid py-3">
+        <!-- Column Controls (Hidden by default) -->
+        <div class="column-controls" id="columnControls" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong><i class="fas fa-eye me-2"></i>Column Visibility</strong>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="showAllColumns()">Show All</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="hideAllColumns()">Hide All</button>
+                </div>
+            </div>
+            <div class="column-toggle" id="columnToggle">
+                <!-- Column checkboxes will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Bulk Actions Bar (Hidden by default) -->
+        <div class="bulk-actions" id="bulkActions">
+            <div>
+                <strong><span id="selectedCountBulk">0</span> items selected</strong>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-warning me-2" onclick="bulkEdit()">
+                    <i class="fas fa-edit me-1"></i>Bulk Edit
+                </button>
+                <button class="btn btn-sm btn-danger me-2" onclick="bulkDelete()">
+                    <i class="fas fa-trash me-1"></i>Delete Selected
+                </button>
+                <button class="btn btn-sm btn-info me-2" onclick="bulkExport()">
+                    <i class="fas fa-download me-1"></i>Export Selected
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+                    <i class="fas fa-times me-1"></i>Clear Selection
+                </button>
+            </div>
+        </div>
+
+        <!-- AG Grid Container with Loading Overlay -->
+        <div class="grid-container position-relative">
+            <div id="productsGrid" class="ag-theme-alpine h-100"></div>
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="text-center">
+                    <div class="spinner"></div>
+                    <div class="mt-2">Loading products...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Grid Stats -->
+        <div class="grid-stats">
+            <div class="stats-left">
+                <div class="stat-item">
+                    <i class="fas fa-boxes text-primary"></i>
+                    <span><span class="stat-value" id="rowCount">0</span> products</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-check-square text-info"></i>
+                    <span><span class="stat-value" id="selectedCount">0</span> selected</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-dollar-sign text-success"></i>
+                    <span><span class="stat-value" id="totalValue">$0</span> total value</span>
+                </div>
+            </div>
+            <div class="text-muted">
+                <i class="fas fa-clock me-1"></i>
+                Last updated: <span id="lastUpdated">-</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Modal for Add/Edit -->
+    <div class="modal fade" id="productModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productModalTitle">Add New Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Product Name *</label>
+                                    <input type="text" class="form-control" name="item_name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Cost Code</label>
+                                    <input type="text" class="form-control" name="cost_code">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Brand</label>
+                                    <input type="text" class="form-control" name="brand">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Model</label>
+                                    <input type="text" class="form-control" name="model">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">SKU</label>
+                                    <input type="text" class="form-control" name="sku">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Item Type</label>
+                                    <select class="form-control" name="item_type">
+                                        <option value="Quote">Quote</option>
+                                        <option value="Product">Product</option>
+                                        <option value="Attribute">Attribute</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Style</label>
+                                    <input type="text" class="form-control" name="style">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control" name="product_description" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Unit of Measure</label>
+                                    <select class="form-control" name="unit_of_measure">
+                                        <option value="EA">Each (EA)</option>
+                                        <option value="SF">Square Feet (SF)</option>
+                                        <option value="LF">Linear Feet (LF)</option>
+                                        <option value="LB">Pounds (LB)</option>
+                                        <option value="GAL">Gallons (GAL)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Color</label>
+                                    <input type="text" class="form-control" name="color">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Finish</label>
+                                    <input type="text" class="form-control" name="finish">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Material</label>
+                                    <input type="text" class="form-control" name="material">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Size</label>
+                                    <input type="text" class="form-control" name="size">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-control" name="is_active">
+                                        <option value="true">Active</option>
+                                        <option value="false">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Plan Option</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" name="plan_option_id" id="planOptionInput" readonly placeholder="No plan option selected">
+                                        <button type="button" class="btn btn-outline-primary" onclick="openPlanOptionModal()">Link to Plan Option</button>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Image URL</label>
+                                    <input type="url" class="form-control" name="image_url">
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="product_id" id="productId">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Option Search Modal -->
+    <div class="modal fade" id="planOptionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select Plan Option</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" id="planOptionSearch" placeholder="Search by plan name, option name, or ID" oninput="filterPlanOptions()">
+                    <div style="max-height: 350px; overflow-y: auto;">
+                        <table class="table table-sm table-hover" id="planOptionTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Plan Name</th>
+                                    <th>Option Name</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Plan options will be populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Copy/Paste Instructions -->
+    <div class="alert alert-info mt-3" style="max-width: 700px;">
+        <strong>Tip:</strong> To duplicate a product, select a row, press <kbd>Ctrl+C</kbd> to copy, click "Add Product" to insert a blank row, then select the new row and press <kbd>Ctrl+V</kbd> to paste. Edit as needed and save.
+    </div>
+
+    <!-- Duplicate Product Modal -->
+    <div class="modal fade" id="duplicateProductModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Duplicate Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                    <form id="duplicateProductForm">
+                        <div class="row">
+                            <div class="col-md-6">
+<div class="mb-3">
+    <label class="form-label">Item ID</label>
+    <input type="text" class="form-control" name="item_id" id="dup_item_id" readonly>
+</div>
+<div class="mb-3">
+    <label class="form-label">Product Name *</label>
+    <input type="text" class="form-control" name="item_name" id="dup_item_name" required>
+</div>
+<div class="mb-3">
+    <label class="form-label">Cost Code</label>
+    <input type="text" class="form-control" name="cost_code" id="dup_cost_code">
+</div>
+                                <div class="mb-3">
+                                    <label class="form-label">Brand</label>
+                                    <input type="text" class="form-control" name="brand" id="dup_brand">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Model</label>
+                                    <input type="text" class="form-control" name="model" id="dup_model">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">SKU</label>
+                                    <input type="text" class="form-control" name="sku" id="dup_sku">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Item Type</label>
+                                    <select class="form-control" name="item_type" id="dup_item_type">
+                                        <option value="Quote">Quote</option>
+                                        <option value="Product">Product</option>
+                                        <option value="Attribute">Attribute</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Style</label>
+                                    <input type="text" class="form-control" name="style" id="dup_style">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control" name="product_description" id="dup_product_description" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Unit of Measure</label>
+                                    <select class="form-control" name="unit_of_measure" id="dup_unit_of_measure">
+                                        <option value="EA">Each (EA)</option>
+                                        <option value="SF">Square Feet (SF)</option>
+                                        <option value="LF">Linear Feet (LF)</option>
+                                        <option value="LB">Pounds (LB)</option>
+                                        <option value="GAL">Gallons (GAL)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Color</label>
+                                    <input type="text" class="form-control" name="color" id="dup_color">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Finish</label>
+                                    <input type="text" class="form-control" name="finish" id="dup_finish">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Material</label>
+                                    <input type="text" class="form-control" name="material" id="dup_material">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Size</label>
+                                    <input type="text" class="form-control" name="size" id="dup_size">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-control" name="is_active" id="dup_is_active">
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Plan Option ID</label>
+                                    <input type="text" class="form-control" name="plan_option_id" id="dup_plan_option_id">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Image URL</label>
+                                    <input type="url" class="form-control" name="image_url" id="dup_image_url">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveDuplicateProduct()">Save Duplicate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
+    <!-- AG Grid Enterprise JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@31.0.0/dist/ag-grid-enterprise.min.js"></script>
+    
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // DEBUG: Log all clicks to help diagnose modal/button event issues
+        document.addEventListener('click', function(e) {
+            console.log('Clicked element:', e.target);
+        });
+
+        // DEBUG: Log all mousedown events
+        document.addEventListener('mousedown', function(e) {
+            console.log('MOUSEDOWN element:', e.target);
+        });
+
+        // AG Grid License (injected from Flask config)
+        agGrid.LicenseManager.setLicenseKey("{{ config['AG_GRID_LICENSE_KEY'] }}");
+
+        // Global variables
+        let gridApi;
+        let gridColumnApi;
+        let allRowData = [];
+        let currentFilter = 'all';
+        let planOptions = []; // Will store all plan options from the API
+
+        // Fetch plan options on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Fetch plan options from API
+            fetch('/api/plan-options')
+                .then(response => response.json())
+                .then(data => {
+                    planOptions = data;
+                    console.log('Loaded plan options:', planOptions);
+                    // Initialize the grid after plan options are loaded
+                    initializeGrid();
+                })
+                .catch(error => {
+                    console.error('Error fetching plan options:', error);
+                    planOptions = [];
+                    initializeGrid();
+                });
+        });
+
+        // Duplicate Product Modal Logic
+        let duplicateRowData = null;
+
+        function openDuplicateModalById(productId) {
+            try {
+                if (!gridApi) return;
+                const productData = allRowData.find(p => p.product_id == productId);
+                if (!productData) {
+                    showNotification('Could not find product data to duplicate.', 'error');
+                    return;
+                }
+                duplicateRowData = { ...productData };
+                // Pre-fill modal fields
+                document.getElementById('dup_item_id').value = duplicateRowData.item_id || '';
+                document.getElementById('dup_item_name').value = duplicateRowData.item_name || '';
+                document.getElementById('dup_cost_code').value = duplicateRowData.cost_code || '';
+                document.getElementById('dup_brand').value = duplicateRowData.brand || '';
+                document.getElementById('dup_model').value = duplicateRowData.model || '';
+                document.getElementById('dup_sku').value = duplicateRowData.sku || '';
+                const itemTypeSelect = document.getElementById('dup_item_type');
+                if (itemTypeSelect) {
+                    itemTypeSelect.value = duplicateRowData.item_type || 'Product';
+                }
+                document.getElementById('dup_style').value = duplicateRowData.style || '';
+                document.getElementById('dup_product_description').value = duplicateRowData.product_description || '';
+                const uomSelect = document.getElementById('dup_unit_of_measure');
+                if (uomSelect) {
+                    uomSelect.value = duplicateRowData.unit_of_measure || 'EA';
+                }
+                document.getElementById('dup_color').value = duplicateRowData.color || '';
+                document.getElementById('dup_finish').value = duplicateRowData.finish || '';
+                document.getElementById('dup_material').value = duplicateRowData.material || '';
+                document.getElementById('dup_size').value = duplicateRowData.size || '';
+                const statusSelect = document.getElementById('dup_is_active');
+                if (statusSelect) {
+                    statusSelect.value = duplicateRowData.is_active !== false ? 'Active' : 'Inactive';
+                }
+                document.getElementById('dup_plan_option_id').value = duplicateRowData.plan_option_id || '';
+                document.getElementById('dup_image_url').value = duplicateRowData.image_url || '/static/images/default-product.png';
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('duplicateProductModal'));
+                modal.show();
+            } catch (e) {
+                showNotification('Failed to open duplicate modal', 'error');
+            }
+        }
+
+async function saveDuplicateProduct() {
+    console.log('saveDuplicateProduct called');
+    let data;
+    try {
+        // Get values from form fields
+        const item_name = document.getElementById('dup_item_name').value.trim();
+        const cost_code = document.getElementById('dup_cost_code').value.trim();
+        const brand = document.getElementById('dup_brand').value.trim();
+        const model = document.getElementById('dup_model').value.trim();
+        const sku = document.getElementById('dup_sku').value.trim();
+        const item_type = document.getElementById('dup_item_type').value.trim() || 'Product';
+        const style = document.getElementById('dup_style').value.trim();
+        const product_description = document.getElementById('dup_product_description').value.trim();
+        const unit_of_measure = document.getElementById('dup_unit_of_measure').value.trim() || 'EA';
+        const color = document.getElementById('dup_color').value.trim();
+        const finish = document.getElementById('dup_finish').value.trim();
+        const material = document.getElementById('dup_material').value.trim();
+        const size = document.getElementById('dup_size').value.trim();
+        const is_active_val = document.getElementById('dup_is_active').value.trim();
+        const plan_option_id = document.getElementById('dup_plan_option_id').value.trim();
+        const image_url = document.getElementById('dup_image_url').value.trim();
+
+        // Validate required fields
+        if (!item_name) {
+            showNotification('Item name is required', 'error');
+            return;
+        }
+
+        // Build data object - send both item_name and item_description for API compatibility
+        data = {
+            item_name: item_name,
+            item_description: product_description || item_name, // Use product description or fall back to item name
+            cost_code: cost_code || null,
+            brand: brand || null,
+            model: model || null,
+            item_type: item_type,
+            style: style || null,
+            unit_of_measure: unit_of_measure,
+            color: color || null,
+            finish: finish || null,
+            material: material || null,
+            size: size || null,
+            is_active: is_active_val === 'Active' || is_active_val === 'true',
+            plan_option_id: plan_option_id ? parseInt(plan_option_id) : null,
+            image_url: image_url || '/static/images/default-product.png',
+            min_stock_level: 0,
+            quantity: 0
+        };
+
+        // Ensure the original item_id is included for duplication
+        if (duplicateRowData && duplicateRowData.item_id) {
+            data.item_id = duplicateRowData.item_id;
+        } else {
+            // If for some reason item_id is missing, try to get it from the grid data
+            const selectedNode = gridApi.getSelectedNodes()[0];
+            if (selectedNode && selectedNode.data && selectedNode.data.item_id) {
+                data.item_id = selectedNode.data.item_id;
+            }
+        }
+        
+        // Final check for item_id before sending
+        if (!data.item_id) {
+            showNotification('Could not find the original Item ID to duplicate.', 'error');
+            return;
+        }
+
+        console.log('saveDuplicateProduct payload:', JSON.stringify(data, null, 2));
+        
+    } catch (err) {
+        console.error('Error building duplicate product data:', err);
+        showNotification('Error preparing data: ' + err.message, 'error');
+        return;
+    }
+    
+    try {
+        console.log('Making API call to /api/products...');
+        const response = await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', [...response.headers.entries()]);
+        
+        let responseData;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            responseData = await response.json();
+        } else {
+            const responseText = await response.text();
+            console.error('Non-JSON response:', responseText);
+            showNotification('Server returned invalid response', 'error');
+            return;
+        }
+        
+        console.log('Response data:', JSON.stringify(responseData, null, 2));
+        
+        if (!response.ok) {
+            const errText = responseData.error || responseData.message || response.statusText;
+            console.error('Duplicate product save failed:', response.status, errText);
+            showNotification('Failed to save duplicate: ' + errText, 'error');
+            return;
+        }
+        
+        const newId = responseData.product_id;
+        console.log('New product ID:', newId);
+        
+        if (!newId) {
+            console.error('No product_id returned from API');
+            showNotification('Product created but no ID returned', 'warning');
+        }
+        
+        // Hide modal first
+        const modalElement = document.getElementById('duplicateProductModal');
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Clear form for next use
+        document.getElementById('duplicateProductForm').reset();
+        
+        // Refresh grid data
+        await refreshData();
+        showNotification('Product duplicated successfully!', 'success');
+        
+        // Focus on the new row if ID is available
+        if (newId && gridApi) {
+            setTimeout(() => {
+                let found = false;
+                gridApi.forEachNode(node => {
+                    if (node.data && node.data.product_id == newId) {
+                        found = true;
+                        node.setSelected(true, true);
+                        gridApi.ensureIndexVisible(node.rowIndex, 'middle');
+                        // Start editing the item name
+                        gridApi.startEditingCell({
+                            rowIndex: node.rowIndex,
+                            colKey: 'item_name'
+                        });
+                    }
+                });
+                if (!found) {
+                    console.log('Could not find new product in grid after refresh');
+                }
+            }, 500);
+        }
+        
+    } catch (error) {
+        console.error('Duplicate product save error:', error);
+        console.error('Error stack:', error.stack);
+        showNotification('Failed to save duplicate: ' + error.message, 'error');
+    }
+}
+
+        // Plan Option Modal Logic
+        let currentProductIdForPlanOption = null;
+
+        function openPlanOptionModal() {
+            // For modal in product form (not grid)
+            currentProductIdForPlanOption = null;
+            populatePlanOptionTable('');
+            document.getElementById('planOptionSearch').value = '';
+            const modal = new bootstrap.Modal(document.getElementById('planOptionModal'));
+            modal.show();
+        }
+
+        function openPlanOptionModalForRow(productId) {
+            currentProductIdForPlanOption = productId;
+            populatePlanOptionTable('');
+            document.getElementById('planOptionSearch').value = '';
+            const modal = new bootstrap.Modal(document.getElementById('planOptionModal'));
+            modal.show();
+        }
+
+        function populatePlanOptionTable(filter) {
+            const tbody = document.querySelector('#planOptionTable tbody');
+            tbody.innerHTML = '';
+            const search = (filter || '').toLowerCase();
+            planOptions.forEach(option => {
+                const id = option.plan_option_id ? option.plan_option_id.toString() : '';
+                const plan = option.plan_full_name || '';
+                const opt = option.option_name || '';
+                if (
+                    !search ||
+                    id.includes(search) ||
+                    plan.toLowerCase().includes(search) ||
+                    opt.toLowerCase().includes(search)
+                ) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${id}</td>
+                        <td>${plan}</td>
+                        <td>${opt}</td>
+                        <td><button type="button" class="btn btn-sm btn-primary" onclick="selectPlanOption('${id}', '${plan}', '${opt}')">Select</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+
+        function filterPlanOptions() {
+            const val = document.getElementById('planOptionSearch').value;
+            populatePlanOptionTable(val);
+        }
+
+        async function selectPlanOption(id, plan, opt) {
+            if (currentProductIdForPlanOption) {
+                // Update via API for grid row
+                try {
+                    const response = await fetch(`/api/products/${currentProductIdForPlanOption}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ plan_option_id: id ? parseInt(id) : null })
+                    });
+                    if (!response.ok) throw new Error('Failed to update product');
+                    if (gridApi) await refreshData();
+                    showNotification('Plan option linked successfully', 'success');
+                } catch (error) {
+                    showNotification('Failed to link plan option', 'error');
+                }
+            } else {
+                // For modal in product form
+                document.getElementById('planOptionInput').value = id;
+            }
+            const modal = bootstrap.Modal.getInstance(document.getElementById('planOptionModal'));
+            modal.hide();
+        }
+
+        // Initialize the grid with column definitions and configuration
+        function initializeGrid() {
+            // Update the plan option column editor params now that planOptions is loaded
+            const planOptionColumn = columnDefs.find(col => col.field === 'plan_option_id');
+            if (planOptionColumn) {
+                planOptionColumn.cellEditorParams = {
+                    values: ['', ...planOptions.map(option => option.plan_option_id.toString())]
+                };
+            }
+            
+            // Use the existing gridOptions that's already defined
+            const gridDiv = document.querySelector('#productsGrid');
+            gridApi = agGrid.createGrid(gridDiv, gridOptions);
+            
+            // Initialize column controls
+            initializeColumnControls();
+            
+            // Load initial data
+            loadInitialData();
+        }
+
+        // Function to apply filter to grid data
+        function applyFilter(filterType) {
+            currentFilter = filterType;
+            
+            let filteredData;
+            if (filterType === 'all') {
+                filteredData = allRowData;
+            } else if (filterType === 'active') {
+                filteredData = allRowData.filter(product => product.is_active === true);
+            } else if (filterType === 'inactive') {
+                filteredData = allRowData.filter(product => product.is_active === false);
+            } else {
+                filteredData = allRowData;
+            }
+            
+            // Update the grid with filtered data
+            if (gridApi) {
+                gridApi.setGridOption('rowData', filteredData);
+            }
+            
+            // Update filter button states
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.getAttribute('data-filter') === filterType) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        // Function to show notifications
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            
+            notification.className = `alert alert-${type} notification`;
+            notification.innerHTML = message;
+            
+            container.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => {
+                    notification.remove();
+                }, 500);
+            }, 5000);
+        }
+        
+        // Cell Value Changed Handler for Inline Editing
+        async function onCellValueChanged(params) {
+            const { data, colDef, newValue, oldValue } = params;
+            
+            // Skip if value hasn't actually changed
+            if (newValue === oldValue) return;
+            
+            try {
+                // Prepare the update payload
+                const updateData = {
+                    [colDef.field]: newValue
+                };
+                
+                // Make API call to update the product
+                const response = await fetch(`/api/products/${data.product_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to update product: ${response.statusText}`);
+                }
+                
+                const updatedProduct = await response.json();
+                
+                // Update the row data with the response
+                data[colDef.field] = newValue;
+                
+                // Refresh the specific row to reflect any server-side changes
+                params.api.applyTransaction({ update: [data] });
+                
+                // Show success notification
+                showNotification(`${colDef.headerName} updated successfully`, 'success');
+                
+            } catch (error) {
+                console.error('Error updating product:', error);
+                
+                // Revert the change on error
+                data[colDef.field] = oldValue;
+                params.api.applyTransaction({ update: [data] });
+                
+                // Show error notification
+                showNotification(`Failed to update ${colDef.headerName}: ${error.message}`, 'error');
+            }
+        }
+
+        // Enhanced Custom Cell Renderers
+        const ProductCellRenderer = params => {
+            if (!params.value) return '';
+            const imageUrl = params.data.image_url || '/static/images/default-product.png';
+            const productName = params.value || 'Unknown Product';
+            const costCode = params.data.cost_code || '';
+            const brand = params.data.brand || '';
+            
+            return `
+                <div class="product-cell">
+                    <img src="${imageUrl}" class="product-image"
+                         onerror="this.src='/static/images/default-product.png'"
+                         alt="${productName}">
+                    <div class="product-info">
+                        <div class="product-name" title="${productName}">${productName}</div>
+                        <div class="product-category">${brand ? brand + ' • ' : ''}${costCode}</div>
+                    </div>
+                </div>
+            `;
+        };
+
+
+        const PriceCellRenderer = params => {
+            if (params.value === null || params.value === undefined) return '';
+            const price = parseFloat(params.value) || 0;
+            const priceChange = params.data.price_change || 0;
+            
+            let changeElement = '';
+            if (priceChange !== 0) {
+                const changeClass = priceChange >= 0 ? 'price-increase' : 'price-decrease';
+                const changeIcon = priceChange >= 0 ? '↗' : '↘';
+                changeElement = `<div class="price-change ${changeClass}">${changeIcon} ${Math.abs(priceChange).toFixed(1)}%</div>`;
+            }
+            
+            return `
+                <div class="price-cell">
+                    <div class="price-main">$${price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    ${changeElement}
+                </div>
+            `;
+        };
+
+
+        const VendorCellRenderer = params => {
+            if (!params.value) return '';
+            const vendorCount = params.data.vendor_count || 0;
+            
+            return `
+                <div class="vendor-cell">
+                    <span class="vendor-badge">${params.value}</span>
+                    ${vendorCount > 1 ? `<small class="text-muted">+${vendorCount - 1} more</small>` : ''}
+                </div>
+            `;
+        };
+
+
+        // Enhanced Column Definitions
+const columnDefs = [
+    {
+        headerName: 'Actions',
+        field: 'actions',
+        width: 180,
+        pinned: 'left',
+        lockPosition: true,
+        cellRenderer: params => {
+            // Pass product_id only, fetch row data from gridApi when clicked
+            return `
+                <button class="btn btn-sm btn-outline-secondary me-1" onclick="openDuplicateModalById('${params.data.product_id}')">Duplicate</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${params.data.product_id}')">Delete</button>
+            `;
+        },
+        sortable: false,
+        filter: false,
+        resizable: false,
+        suppressMenu: true
+    },
+            {
+                headerName: 'Plan Name',
+                field: 'plan_full_name',
+                width: 200,
+                editable: false,
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+                tooltipField: 'plan_full_name'
+            },
+            {
+                headerName: 'Option Name',
+                field: 'option_name',
+                width: 180,
+                editable: false,
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+                tooltipField: 'option_name'
+            },
+            {
+                headerName: '',
+                checkboxSelection: true,
+                headerCheckboxSelection: true,
+                width: 50,
+                pinned: 'left',
+                lockPosition: true,
+                suppressMenu: true,
+                sortable: false
+            },
+            {
+                headerName: '',
+                cellRenderer: 'agGroupCellRenderer',
+                width: 50,
+                pinned: 'left',
+                lockPosition: true,
+                suppressMenu: true,
+                sortable: false,
+                resizable: false
+            },
+            {
+                headerName: 'Cost Code',
+                field: 'cost_code',
+                width: 150,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+                pinned: 'left',
+                sort: 'asc',
+                sortIndex: 0
+            },
+            {
+                headerName: 'Item ID',
+                field: 'item_id',
+                width: 100,
+                editable: false,
+                filter: 'agNumberColumnFilter',
+                pinned: false,
+                suppressMenu: false,
+                tooltipField: 'item_id'
+            },
+            {
+                headerName: 'Item Name',
+                field: 'item_name',
+                width: 250,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+            },
+            {
+                headerName: 'Item Description',
+                field: 'product_description',
+                width: 400,
+                editable: false,  // Read-only since it auto-populates based on item_type
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+                tooltipField: 'product_description'
+            },
+            {
+                headerName: 'Brand',
+                field: 'brand',
+                width: 150,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+            },
+            {
+                headerName: 'Model',
+                field: 'model',
+                width: 150,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+            },
+            {
+                headerName: 'SKU',
+                field: 'sku',
+                width: 150,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                }
+            },
+            {
+                headerName: 'Item Type',
+                field: 'item_type',
+                width: 120,
+                editable: true,
+                cellEditor: 'agSelectCellEditor',
+                cellEditorParams: {
+                    values: ['Quote', 'Product', 'Attribute']
+                },
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                }
+            },
+            {
+                headerName: 'Style',
+                field: 'style',
+                width: 150,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                }
+            },
+            {
+                headerName: 'Color',
+                field: 'color',
+                width: 120,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                }
+            },
+            {
+                headerName: 'Finish',
+                field: 'finish',
+                width: 120,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                }
+            },
+            {
+                headerName: 'Material',
+                field: 'material',
+                width: 150,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                }
+            },
+            {
+                headerName: 'Size',
+                field: 'size',
+                width: 120,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                }
+            },
+            {
+                headerName: 'Plan Option',
+                field: 'plan_option_id',
+                width: 200,
+                editable: false,
+                cellRenderer: params => {
+                    const id = params.value ? params.value.toString() : '';
+                    if (!id) {
+                        return `<span class="text-muted">No plan option</span>
+                            <button class="btn btn-sm btn-outline-primary ms-2" onclick="openPlanOptionModalForRow('${params.data.product_id}')">Link</button>`;
+                    }
+                    // Find the plan option to display the name
+                    const planOption = planOptions.find(option => option.plan_option_id.toString() === id);
+                    const displayName = planOption ? (planOption.plan_full_name + ' & ' + planOption.option_name) : 'Unknown';
+                    return `<span class="badge bg-info" title="${displayName}">${id}</span>
+                        <button class="btn btn-sm btn-outline-primary ms-2" onclick="openPlanOptionModalForRow('${params.data.product_id}')">Link</button>`;
+                },
+                tooltipValueGetter: params => {
+                    const id = params.value ? params.value.toString() : '';
+                    if (!id) return 'No plan option selected';
+                    const planOption = planOptions.find(option => option.plan_option_id.toString() === id);
+                    if (planOption) {
+                        return planOption.plan_full_name + ' & ' + planOption.option_name;
+                    }
+                    return 'Unknown plan option';
+                }
+            },
+            {
+                headerName: 'Status',
+                field: 'is_active',
+                editable: true,
+                cellEditor: 'agSelectCellEditor',
+                cellEditorParams: {
+                    values: [true, false]
+                },
+                cellRenderer: params => {
+                    const isActive = params.value;
+                    const statusClass = isActive ? 'badge bg-success' : 'badge bg-secondary';
+                    const statusText = isActive ? 'Active' : 'Inactive';
+                    return `<span class="${statusClass}">${statusText}</span>`;
+                },
+                width: 100,
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                }
+            },
+            {
+                headerName: 'Min Price',
+                field: 'min_price',
+                cellRenderer: PriceCellRenderer,
+                width: 120,
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+                type: 'numericColumn'
+            },
+            {
+                headerName: 'Max Price',
+                field: 'max_price',
+                cellRenderer: PriceCellRenderer,
+                width: 120,
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+                type: 'numericColumn'
+            },
+            {
+                headerName: 'Avg Price',
+                field: 'avg_price',
+                cellRenderer: PriceCellRenderer,
+                width: 120,
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+                type: 'numericColumn'
+            },
+            {
+                headerName: 'Vendor Count',
+                field: 'vendor_count',
+                width: 120,
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+                type: 'numericColumn',
+                cellRenderer: params => {
+                    const count = params.value || 0;
+                    const badgeClass = count > 1 ? 'badge bg-info' : 'badge bg-secondary';
+                    return `<span class="${badgeClass}">${count}</span>`;
+                }
+            },
+        ];
+
+        // Enhanced Grid Options with Excel-like functionality
+const gridOptions = {
+    columnDefs: columnDefs,
+    defaultColDef: {
+        sortable: true,
+        filter: true,
+        resizable: true,
+        floatingFilter: true,
+        suppressMenu: false,
+        editable: true  // Make all columns editable by default
+    },
+    getRowId: params => params.data && params.data.product_id ? String(params.data.product_id) : undefined,
+    suppressColumnVirtualisation: false,
+    suppressHorizontalScroll: false,
+    rowSelection: 'multiple',
+    animateRows: true,
+    enableRangeSelection: true,
+    enableRangeHandle: true,
+    enableFillHandle: true,
+    fillHandleDirection: 'xy',  // Allow fill in both directions
+    enableCharts: true,
+    enableCellTextSelection: true,
+    ensureDomOrder: true,
+    clipboardDelimiter: '\t',  // Tab delimiter for Excel compatibility
+    suppressCopyRowsToClipboard: false,
+    suppressCopySingleCellRanges: false,
+    copyHeadersToClipboard: true,
+    copyGroupHeadersToClipboard: true,
+    onCellValueChanged: onCellValueChanged,
+    onPasteStart: params => {
+        console.log('Paste operation started');
+    },
+    onPasteEnd: params => {
+        console.log('Paste operation completed');
+        showNotification('Data pasted successfully', 'success');
+    },
+    processCellForClipboard: params => {
+        // Custom processing for clipboard operations
+        if (params.column.colId === 'is_active') {
+            return params.value ? 'Active' : 'Inactive';
+        }
+        return params.value;
+    },
+    processCellFromClipboard: params => {
+        // Custom processing when pasting from clipboard
+        if (params.column.colId === 'is_active') {
+            const value = params.value.toLowerCase();
+            return value === 'active' || value === 'true' || value === '1';
+        }
+        return params.value;
+    },
+    processDataFromClipboard: params => {
+        // Process entire clipboard data before pasting
+        console.log('Processing clipboard data:', params.data);
+        return params.data;
+    },
+    onRowDataUpdated: params => {
+        // Remove blank rows that were not saved
+        if (gridApi) {
+            gridApi.forEachNode(node => {
+                if (node.data && !node.data.product_id && !node.data.item_name) {
+                    gridApi.applyTransaction({ remove: [node.data] });
+                }
+            });
+        }
+    },
+    sideBar: {
+        toolPanels: [
+            {
+                id: 'columns',
+                labelDefault: 'Columns',
+                labelKey: 'columns',
+                iconKey: 'columns',
+                toolPanel: 'agColumnsToolPanel',
+                toolPanelParams: {
+                    suppressRowGroups: true,
+                    suppressValues: true,
+                    suppressPivots: true,
+                    suppressPivotMode: true,
+                    suppressColumnFilter: false,
+                    suppressColumnSelectAll: false,
+                    suppressColumnExpandAll: false
+                }
+            },
+            {
+                id: 'filters',
+                labelDefault: 'Filters',
+                labelKey: 'filters',
+                iconKey: 'filter',
+                toolPanel: 'agFiltersToolPanel'
+            }
+        ],
+        defaultToolPanel: 'columns'
+    },
+    statusBar: {
+        statusPanels: [
+            { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'left' },
+            { statusPanel: 'agSelectedRowCountComponent', align: 'left' },
+            { statusPanel: 'agAggregationComponent', align: 'right' }
+        ]
+    },
+    onGridReady: onGridReady,
+    onSelectionChanged: onSelectionChanged,
+    onFilterChanged: onFilterChanged,
+    getRowStyle: params => {
+        return null;
+    },
+    tooltipShowDelay: 500,
+    pagination: true,
+    paginationPageSize: 50,
+    paginationPageSizeSelector: [25, 50, 100, 200],
+    // Master Detail Configuration
+    masterDetail: true,
+    detailCellRendererParams: {
+        detailGridOptions: {
+            columnDefs: [
+                { headerName: 'Vendor', field: 'vendor_name', width: 150 },
+                { headerName: 'Price', field: 'price', width: 120,
+                  editable: true,
+                  cellEditor: 'agNumberCellEditor',
+                  cellEditorParams: {
+                      min: 0,
+                      precision: 2
+                  },
+                  valueFormatter: params => {
+                      const price = parseFloat(params.value) || 0;
+                      return `$${price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                  },
+                  valueSetter: params => {
+                      const newValue = parseFloat(params.newValue);
+                      if (!isNaN(newValue) && newValue >= 0) {
+                          params.data.price = newValue.toFixed(4);
+                          return true;
+                      }
+                      return false;
+                  },
+                  onCellValueChanged: params => {
+                      updateVendorPrice(params.data.pricing_id, params.data.price);
+                  }
+                },
+                { headerName: 'Unit', field: 'unit_of_measure', width: 80 },
+                { headerName: 'Price Type', field: 'price_type', width: 100,
+                  cellRenderer: params => {
+                      const type = params.value || '';
+                      const badgeClass = type === 'quote' ? 'badge bg-primary' : 'badge bg-secondary';
+                      return `<span class="${badgeClass}">${type}</span>`;
+                  }
+                },
+                { headerName: 'Min Qty', field: 'minimum_quantity', width: 100 },
+                { headerName: 'Effective Date', field: 'effective_date', width: 120,
+                  cellRenderer: params => {
+                      if (!params.value) return '';
+                      const date = new Date(params.value);
+                      return date.toLocaleDateString();
+                  }
+                },
+                { headerName: 'Expiration', field: 'expiration_date', width: 120,
+                  cellRenderer: params => {
+                      if (!params.value) return 'No expiration';
+                      const date = new Date(params.value);
+                      return date.toLocaleDateString();
+                  }
+                },
+                { headerName: 'Notes', field: 'notes', width: 200, tooltipField: 'notes' }
+            ],
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true
+            }
+        },
+        getDetailRowData: params => {
+            // Fetch vendor pricing data for this product
+            const productId = params.data.product_id;
+            fetch(`/api/vendor-pricing?product_id=${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    params.successCallback(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching vendor pricing:', error);
+                    params.failCallback();
+                });
+        }
+    },
+    isRowMaster: params => {
+        // All rows can be expanded to show vendor pricing
+        return true;
+    }
+};
+
+        // Remove duplicate DOMContentLoaded - initialization is already handled above
+
+        // Enhanced Grid Event Handlers
+        function onGridReady(params) {
+            gridApi = params.api;
+            gridColumnApi = params.columnApi;
+            
+            // Don't auto-size columns to enable horizontal scrolling
+            // Columns will use their defined widths from columnDefs
+            
+            // Handle window resize - don't auto-fit to allow horizontal scrolling
+            window.addEventListener('resize', debounce(() => {
+                // Remove auto-sizing on resize to maintain column widths
+            }, 250));
+        }
+
+        function onSelectionChanged() {
+            const selectedRows = gridApi.getSelectedRows();
+            const selectedCount = selectedRows.length;
+            
+            // Update selection counters
+            const selectedCountEl = document.getElementById('selectedCount');
+            const selectedCountBulkEl = document.getElementById('selectedCountBulk');
+            
+            if (selectedCountEl) selectedCountEl.textContent = selectedCount;
+            if (selectedCountBulkEl) selectedCountBulkEl.textContent = selectedCount;
+            
+            // Show/hide bulk actions
+            const bulkActions = document.getElementById('bulkActions');
+            if (selectedCount > 0) {
+                bulkActions.classList.add('show');
+            } else {
+                bulkActions.classList.remove('show');
+            }
+            
+            updateTotalValue();
+        }
+
+
+        function onFilterChanged() {
+            updateGridInfo();
+        }
+
+        // Utility function for debouncing
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+
+
+        // Data Loading Functions
+        async function loadInitialData() {
+            showLoading(true);
+            try {
+                const response = await fetch('/api/products');
+                if (!response.ok) throw new Error('Failed to load products');
+                
+                const data = await response.json();
+                allRowData = data;  // Store all data for filtering
+                applyFilter(currentFilter);  // Apply current filter
+                updateGridInfo();
+                showNotification('Products loaded successfully', 'success');
+            } catch (error) {
+                console.error('Error loading products:', error);
+                showNotification('Failed to load products', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function refreshData() {
+            await loadInitialData();
+        }
+
+        // Search and Filter Functions
+        function performQuickSearch() {
+            const searchTerm = document.getElementById('quickSearch').value;
+            gridApi.setQuickFilter(searchTerm);
+            updateGridInfo();
+        }
+
+        function clearAllFilters() {
+            gridApi.setFilterModel(null);
+            document.getElementById('quickSearch').value = '';
+            gridApi.setQuickFilter('');
+            updateGridInfo();
+            showNotification('All filters cleared', 'info');
+        }
+
+
+        // Column Management Functions
+        function initializeColumnControls() {
+            const columnToggles = document.querySelectorAll('.column-toggle');
+            columnToggles.forEach(toggle => {
+                toggle.addEventListener('change', function() {
+                    const columnId = this.dataset.column;
+                    gridApi.setColumnVisible(columnId, this.checked);
+                });
+            });
+        }
+
+        function resetColumns() {
+            gridApi.resetColumnState();
+            gridApi.sizeColumnsToFit();
+            
+            // Reset column toggles
+            const columnToggles = document.querySelectorAll('.column-toggle');
+            columnToggles.forEach(toggle => {
+                toggle.checked = true;
+            });
+            
+            showNotification('Columns reset to default', 'info');
+        }
+
+        function autoSizeColumns() {
+            const allColumnIds = gridApi.getColumns().map(col => col.getColId());
+            gridApi.autoSizeColumns(allColumnIds, false);
+        }
+
+        // Helper Functions for UI
+        async function addBlankProductRow() {
+            // Create a new blank product in the database, then select it for editing/pasting
+            try {
+                const blankProduct = {
+                    item_description: '',
+                    brand: '',
+                    model: '',
+                    item_type: 'Product',
+                    style: '',
+                    color: '',
+                    finish: '',
+                    material: '',
+                    size: '',
+                    unit_of_measure: 'EA',
+                    image_url: '/static/images/default-product.png',
+                    is_active: true,
+                    plan_option_id: null,
+                    min_stock_level: 0,
+                    quantity: 0
+                };
+                const response = await fetch('/api/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(blankProduct)
+                });
+                if (!response.ok) {
+                    showNotification('Failed to add blank product', 'error');
+                    return;
+                }
+                const result = await response.json();
+                const newId = result.product_id || (result.success && result.product_id) || null;
+                await refreshData();
+                if (newId && gridApi) {
+                    setTimeout(() => {
+                        gridApi.forEachNode(node => {
+                            if (node.data && node.data.product_id == newId) {
+                                node.setSelected(true, true);
+                                gridApi.ensureIndexVisible(node.rowIndex, 'middle');
+                            }
+                        });
+                    }, 500);
+                }
+            } catch (error) {
+                showNotification('Failed to add blank product', 'error');
+            }
+        }
+
+        function refreshGrid() {
+            refreshData();
+        }
+
+        function onSearchChange(value) {
+            gridApi.setQuickFilter(value);
+            updateGridInfo();
+        }
+
+        function toggleColumnControls() {
+            const controls = document.getElementById('columnControls');
+            controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showAllColumns() {
+            const allColumns = gridApi.getColumns();
+            allColumns.forEach(column => {
+                gridApi.setColumnVisible(column.getColId(), true);
+            });
+        }
+
+        function hideAllColumns() {
+            const allColumns = gridApi.getColumns();
+            allColumns.forEach(column => {
+                if (column.getColId() !== 'ag-Grid-AutoColumn') {
+                    gridApi.setColumnVisible(column.getColId(), false);
+                }
+            });
+        }
+
+        function clearSelection() {
+            gridApi.deselectAll();
+        }
+
+        function bulkEdit() {
+            showNotification('Bulk edit feature coming soon', 'info');
+        }
+
+        function bulkDelete() {
+            const selectedRows = gridApi.getSelectedRows();
+            if (selectedRows.length === 0) {
+                showNotification('Please select items to delete', 'warning');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to delete ${selectedRows.length} products?`)) {
+                // Implementation for bulk delete
+                showNotification('Bulk delete feature coming soon', 'info');
+            }
+        }
+
+        function bulkExport() {
+            const selectedRows = gridApi.getSelectedRows();
+            if (selectedRows.length === 0) {
+                showNotification('Please select items to export', 'warning');
+                return;
+            }
+            exportToExcel();
+        }
+
+        // CRUD Operations
+        function addProduct() {
+            currentProduct = null;
+            document.getElementById('productModalTitle').textContent = 'Add New Product';
+            document.getElementById('productForm').reset();
+            document.getElementById('productId').value = '';
+            
+            const modal = new bootstrap.Modal(document.getElementById('productModal'));
+            modal.show();
+        }
+
+        function editProduct(productId) {
+            const rowNode = gridApi.getRowNode(productId);
+            if (!rowNode) return;
+            
+            currentProduct = rowNode.data;
+            document.getElementById('productModalTitle').textContent = 'Edit Product';
+            
+            // Populate form fields
+            document.getElementById('productId').value = currentProduct.id || '';
+            document.getElementById('itemName').value = currentProduct.item_name || '';
+            document.getElementById('productDescription').value = currentProduct.product_description || '';
+            document.getElementById('costCode').value = currentProduct.cost_code || '';
+            document.getElementById('unitPrice').value = currentProduct.unit_price || '';
+            document.getElementById('unitOfMeasure').value = currentProduct.unit_of_measure || '';
+            document.getElementById('vendorName').value = currentProduct.vendor_name || '';
+            document.getElementById('brand').value = currentProduct.brand || '';
+            document.getElementById('model').value = currentProduct.model || '';
+            document.getElementById('sku').value = currentProduct.sku || '';
+            document.getElementById('imageUrl').value = currentProduct.image_url || '';
+            document.getElementById('isActive').value = currentProduct.is_active !== false ? 'true' : 'false';
+            
+            // Add new fields
+            const itemTypeField = document.querySelector('input[name="item_type"]');
+            if (itemTypeField) itemTypeField.value = currentProduct.item_type || '';
+            
+            const styleField = document.querySelector('input[name="style"]');
+            if (styleField) styleField.value = currentProduct.style || '';
+            
+            const colorField = document.querySelector('input[name="color"]');
+            if (colorField) colorField.value = currentProduct.color || '';
+            
+            const finishField = document.querySelector('input[name="finish"]');
+            if (finishField) finishField.value = currentProduct.finish || '';
+            
+            const materialField = document.querySelector('input[name="material"]');
+            if (materialField) materialField.value = currentProduct.material || '';
+            
+            const sizeField = document.querySelector('input[name="size"]');
+            if (sizeField) sizeField.value = currentProduct.size || '';
+            
+            // Set plan option
+            const planOptionField = document.getElementById('planOptionSelect');
+            if (planOptionField) planOptionField.value = currentProduct.plan_option_id || '';
+            
+            const modal = new bootstrap.Modal(document.getElementById('productModal'));
+            modal.show();
+        }
+
+        async function saveProduct() {
+            const form = document.getElementById('productForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const formData = new FormData(form);
+            const productData = Object.fromEntries(formData.entries());
+            
+            // Convert numeric fields
+            productData.unit_price = parseFloat(productData.unit_price) || 0;
+            productData.is_active = productData.is_active === 'true';
+            productData.plan_option_id = productData.plan_option_id ? parseInt(productData.plan_option_id) : null;
+            
+            try {
+                const isEdit = productData.id && productData.id !== '';
+                const url = isEdit ? `/api/products/${productData.id}` : '/api/products';
+                const method = isEdit ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(productData)
+                });
+                
+                if (!response.ok) throw new Error('Failed to save product');
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
+                modal.hide();
+                
+                await refreshData();
+                showNotification(`Product ${isEdit ? 'updated' : 'created'} successfully`, 'success');
+                
+            } catch (error) {
+                console.error('Error saving product:', error);
+                showNotification('Failed to save product', 'error');
+            }
+        }
+
+        async function deleteProduct(productId) {
+            if (!confirm('Are you sure you want to delete this product?')) return;
+            
+            try {
+                const response = await fetch(`/api/products/${productId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) throw new Error('Failed to delete product');
+                
+                await refreshData();
+                showNotification('Product deleted successfully', 'success');
+                
+            } catch (error) {
+                console.error('Error deleting product:', error);
+                showNotification('Failed to delete product', 'error');
+            }
+        }
+
+// Bulk Operations
+async function bulkDelete() {
+    const selectedRows = gridApi.getSelectedRows();
+    if (selectedRows.length === 0) return;
+
+    if (!confirm(`Are you sure you want to delete ${selectedRows.length} products?`)) return;
+
+    try {
+        // Only delete rows with a valid product_id
+        const deletePromises = selectedRows
+            .filter(row => row.product_id)
+            .map(row =>
+                fetch(`/api/products/${row.product_id}`, { method: 'DELETE' })
+            );
+
+        await Promise.all(deletePromises);
+        await refreshData();
+        showNotification(`${deletePromises.length} products deleted successfully`, 'success');
+
+    } catch (error) {
+        console.error('Error in bulk delete:', error);
+        showNotification('Failed to delete some products', 'error');
+    }
+}
+
+
+        // AG-Grid Enterprise Import/Export/Template Functions
+
+        // Export Excel using AG-Grid API
+        function exportAgGridExcel() {
+            gridApi.exportDataAsExcel({
+                fileName: `products_${new Date().toISOString().split('T')[0]}.xlsx`,
+                sheetName: 'Products'
+            });
+            showNotification('Excel export completed', 'success');
+        }
+
+        // Export CSV using AG-Grid API
+        function exportAgGridCSV() {
+            gridApi.exportDataAsCsv({
+                fileName: `products_${new Date().toISOString().split('T')[0]}.csv`
+            });
+            showNotification('CSV export completed', 'success');
+        }
+
+        // Import dialog using AG-Grid Enterprise API
+        function showAgGridImportDialog() {
+            if (!gridApi) {
+                showNotification('Grid not ready', 'error');
+                return;
+            }
+            gridApi.showImportExcelDialog();
+        }
+
+        // Download template (headers only, no data)
+        function downloadAgGridTemplate() {
+            if (!gridApi) {
+                showNotification('Grid not ready', 'error');
+                return;
+            }
+            gridApi.exportDataAsExcel({
+                fileName: 'products_import_template.xlsx',
+                onlySelected: false,
+                processRowGroupCallback: () => null,
+                processCellCallback: () => '',
+                rowData: [],
+                sheetName: 'Template'
+            });
+            showNotification('Template downloaded', 'success');
+        }
+
+        // Keyboard Shortcuts for Excel-like functionality
+        document.addEventListener('keydown', function(e) {
+            if (!gridApi) return;
+
+            // Ctrl+C - Copy
+            if (e.ctrlKey && e.key === 'c' && !e.shiftKey) {
+                const focusedCell = gridApi.getFocusedCell();
+                if (focusedCell) {
+                    gridApi.copySelectedRangeToClipboard();
+                }
+            }
+
+            // Ctrl+V - Paste
+            if (e.ctrlKey && e.key === 'v' && !e.shiftKey) {
+                const focusedCell = gridApi.getFocusedCell();
+                if (focusedCell) {
+                    gridApi.pasteFromClipboard();
+                }
+            }
+
+            // Ctrl+A - Select All
+            if (e.ctrlKey && e.key === 'a' && !e.shiftKey) {
+                e.preventDefault();
+                gridApi.selectAll();
+            }
+
+            // Ctrl+Z - Undo (would need to implement undo/redo stack)
+            if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                showNotification('Undo feature coming soon', 'info');
+            }
+
+            // Delete - Clear cell content
+            if (e.key === 'Delete' && !e.ctrlKey && !e.shiftKey) {
+                const focusedCell = gridApi.getFocusedCell();
+                if (focusedCell && focusedCell.column.colDef.editable) {
+                    const rowNode = gridApi.getRowNode(focusedCell.rowIndex);
+                    if (rowNode) {
+                        rowNode.setDataValue(focusedCell.column.colId, '');
+                    }
+                }
+            }
+
+            // F2 - Start editing
+            if (e.key === 'F2') {
+                e.preventDefault();
+                const focusedCell = gridApi.getFocusedCell();
+                if (focusedCell) {
+                    gridApi.startEditingCell({
+                        rowIndex: focusedCell.rowIndex,
+                        colKey: focusedCell.column.colId
+                    });
+                }
+            }
+
+            // Escape - Cancel editing
+            if (e.key === 'Escape') {
+                gridApi.stopEditing(true);
+            }
+
+            // Enter - Confirm edit and move down
+            if (e.key === 'Enter' && !e.shiftKey) {
+                const editing = gridApi.getEditingCells();
+                if (editing.length > 0) {
+                    gridApi.stopEditing();
+                    // Move to next row
+                    const focusedCell = gridApi.getFocusedCell();
+                    if (focusedCell && focusedCell.rowIndex < gridApi.getDisplayedRowCount() - 1) {
+                        gridApi.setFocusedCell(focusedCell.rowIndex + 1, focusedCell.column);
+                    }
+                }
+            }
+
+            // Tab - Move to next cell
+            if (e.key === 'Tab') {
+                const editing = gridApi.getEditingCells();
+                if (editing.length > 0) {
+                    e.preventDefault();
+                    gridApi.tabToNextCell();
+                }
+            }
+        });
+
+        // Update vendor price function
+        async function updateVendorPrice(pricingId, newPrice) {
+            try {
+                const response = await fetch('/api/vendor-pricing/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pricing_id: pricingId,
+                        new_price: parseFloat(newPrice)
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Show success message
+                    showNotification('Price updated successfully! Previous price saved to history.', 'success');
+                    
+                    // Refresh the detail grid to show updated data
+                    if (gridApi) {
+                        const expandedRows = [];
+                        gridApi.forEachNode(node => {
+                            if (node.expanded) {
+                                expandedRows.push(node.data.product_id);
+                            }
+                        });
+                        
+                        // Refresh the main grid data
+                        loadInitialData();
+                        
+                        // Re-expand the previously expanded rows after a short delay
+                        setTimeout(() => {
+                            expandedRows.forEach(productId => {
+                                gridApi.forEachNode(node => {
+                                    if (node.data.product_id === productId) {
+                                        node.setExpanded(true);
+                                    }
+                                });
+                            });
+                        }, 500);
+                    }
+                } else {
+                    showNotification(result.error || 'Failed to update price', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating vendor price:', error);
+                showNotification('Error updating price. Please try again.', 'error');
+            }
+        }
+
+        // Utility Functions
+        function updateGridInfo() {
+            const totalRows = gridApi.getDisplayedRowCount();
+            const filteredRows = gridApi.getModel().getRowCount();
+            
+            const totalProductsEl = document.getElementById('totalProducts');
+            const filteredProductsEl = document.getElementById('filteredProducts');
+            
+            if (totalProductsEl) totalProductsEl.textContent = totalRows;
+            if (filteredProductsEl) filteredProductsEl.textContent = filteredRows;
+        }
+
+        function updateTotalValue() {
+            const selectedRows = gridApi.getSelectedRows();
+            const totalValue = selectedRows.reduce((sum, row) => {
+                return sum + (row.unit_price || 0);
+            }, 0);
+            
+            const totalValueEl = document.getElementById('totalValue');
+            if (totalValueEl) {
+                totalValueEl.textContent =
+                    `$${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            }
+        }
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) {
+                overlay.classList.add('show');
+            } else {
+                overlay.classList.remove('show');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Search functionality
+            const quickSearch = document.getElementById('quickSearch');
+            if (quickSearch) {
+                quickSearch.addEventListener('input', debounce(performQuickSearch, 300));
+            }
+            
+            // Filter tabs
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    // Status filter removed
+                });
+            });
+            
+            // Form submission
+            const productForm = document.getElementById('productForm');
+            if (productForm) {
+                productForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    saveProduct();
+                });
+            }
+        });
+
+        // Show keyboard shortcuts modal
+        function showKeyboardShortcuts() {
+            const modal = new bootstrap.Modal(document.getElementById('keyboardShortcutsModal'));
+            modal.show();
+        }
+
+        // (Removed old Flask template and AG-Grid template download logic; replaced with AG-Grid enterprise template export above)
+    </script>
+
+    <!-- Keyboard Shortcuts Help Modal -->
+    <div class="modal fade" id="keyboardShortcutsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Excel-like Keyboard Shortcuts</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Editing</h6>
+                    <ul class="list-unstyled">
+                        <li><kbd>F2</kbd> - Start editing current cell</li>
+                        <li><kbd>Enter</kbd> - Confirm edit and move down</li>
+                        <li><kbd>Tab</kbd> - Confirm edit and move right</li>
+                        <li><kbd>Esc</kbd> - Cancel editing</li>
+                        <li><kbd>Delete</kbd> - Clear cell content</li>
+                    </ul>
+                    
+                    <h6 class="mt-3">Copy & Paste</h6>
+                    <ul class="list-unstyled">
+                        <li><kbd>Ctrl+C</kbd> - Copy selected cells</li>
+                        <li><kbd>Ctrl+V</kbd> - Paste from clipboard</li>
+                        <li><kbd>Ctrl+A</kbd> - Select all rows</li>
+                    </ul>
+                    
+                    <h6 class="mt-3">Navigation</h6>
+                    <ul class="list-unstyled">
+                        <li><kbd>Arrow Keys</kbd> - Navigate between cells</li>
+                        <li><kbd>Page Up/Down</kbd> - Navigate pages</li>
+                        <li><kbd>Home/End</kbd> - Go to first/last column</li>
+                    </ul>
+                    
+                    <h6 class="mt-3">Excel-like Features</h6>
+                    <ul>
+                        <li>Click and drag to select multiple cells</li>
+                        <li>Fill handle to copy values down/across</li>
+                        <li>Range selection for bulk operations</li>
+                        <li>Import/Export Excel files</li>
+                        <li>Inline editing with validation</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

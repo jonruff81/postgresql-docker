@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plans</title>
+    
+    <!-- AG Grid Enterprise CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@31.0.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@31.0.0/styles/ag-theme-alpine.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #0dcaf0;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+
+        .ag-theme-alpine {
+            font-size: 14px;
+            --ag-header-height: 48px;
+            --ag-row-height: 52px;
+            --ag-border-color: #e9ecef;
+            --ag-header-background-color: #f8f9fa;
+            --ag-odd-row-background-color: #fdfdfd;
+        }
+
+        .grid-container {
+            height: 70vh;
+            min-height: 500px;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .plan-cell {
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+        }
+
+        .plan-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .plan-name {
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .plan-architect {
+            font-size: 11px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .count-badge {
+            background-color: #e7f3ff;
+            color: #0066cc;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .toolbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .toolbar h2 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 28px;
+        }
+
+        .toolbar p {
+            margin: 8px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .filter-tabs {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tabs .btn {
+            border-radius: 25px;
+            padding: 8px 20px;
+            font-weight: 500;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .filter-tabs .btn.active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .controls-row {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .search-box {
+            max-width: 350px;
+        }
+
+        .search-box .form-control {
+            border-radius: 25px;
+            padding: 12px 20px 12px 45px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .search-box .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        .search-box .input-group-text {
+            background: transparent;
+            border: none;
+            position: absolute;
+            left: 15px;
+            z-index: 10;
+            color: #6c757d;
+        }
+
+        .action-buttons-group .btn {
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-weight: 500;
+            margin-left: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .action-buttons-group .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .grid-stats {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .stats-left {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            border-radius: 8px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .column-controls {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .column-toggle {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .column-toggle .form-check {
+            margin: 0;
+            padding: 4px 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .bulk-actions {
+            background: #fff3cd;
+            border: 1px solid #ffecb5;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .bulk-actions.show {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .ag-details-row {
+            background-color: #f8f9fa !important;
+        }
+
+        .ag-details-grid {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .ag-details-grid .ag-header {
+            background-color: #e9ecef;
+            font-weight: 600;
+        }
+
+        .ag-details-grid .ag-row {
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .ag-details-grid .ag-row:hover {
+            background-color: #f5f5f5;
+        }
+
+        @media (max-width: 768px) {
+            .grid-container {
+                height: 60vh;
+            }
+            
+            .toolbar {
+                padding: 16px;
+            }
+            
+            .toolbar h2 {
+                font-size: 24px;
+            }
+            
+            .controls-row {
+                padding: 16px;
+            }
+            
+            .filter-tabs {
+                justify-content: center;
+            }
+            
+            .action-buttons-group {
+                text-align: center;
+                margin-top: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-3">
+        <!-- Enhanced Header -->
+        <div class="toolbar">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2><i class="fas fa-home me-3"></i>Plans</h2>
+                    <p>Comprehensive plan catalog with elevation and option management</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/" class="btn btn-light btn-lg">
+                        <i class="fas fa-arrow-left me-2"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Controls Row -->
+        <div class="controls-row">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <div class="search-box">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" placeholder="Search plans, architects..."
+                                   onInput="onSearchChange(this.value)" id="searchInput">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="action-buttons-group text-end">
+                        <button class="btn btn-outline-secondary" onclick="toggleColumnControls()">
+                            <i class="fas fa-columns me-2"></i>Columns
+                        </button>
+                        <button class="btn btn-outline-info" onclick="showKeyboardShortcuts()">
+                            <i class="fas fa-keyboard me-2"></i>Shortcuts
+                        </button>
+                        <button class="btn btn-success" onclick="alert('Button clicked!'); document.getElementById('planForm').reset(); const planModal = new bootstrap.Modal(document.getElementById('planModal')); planModal.show();">
+                            <i class="fas fa-plus me-2"></i>Add Plan
+                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-info dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-download me-2"></i>Export
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" onclick="exportToExcel()">
+                                    <i class="fas fa-file-excel me-2"></i>Excel
+                                </a></li>
+                                <li><a class="dropdown-item" onclick="exportToCSV()">
+                                    <i class="fas fa-file-csv me-2"></i>CSV
+                                </a></li>
+                                <li><a class="dropdown-item" onclick="exportToPDF()">
+                                    <i class="fas fa-file-pdf me-2"></i>PDF
+                                </a></li>
+                            </ul>
+                        </div>
+                        <button class="btn btn-outline-primary" onclick="refreshGrid()">
+                            <i class="fas fa-sync me-2"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column Controls (Hidden by default) -->
+        <div class="column-controls" id="columnControls" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong><i class="fas fa-eye me-2"></i>Column Visibility</strong>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="showAllColumns()">Show All</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="hideAllColumns()">Hide All</button>
+                </div>
+            </div>
+            <div class="column-toggle" id="columnToggle">
+                <!-- Column checkboxes will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Bulk Actions Bar (Hidden by default) -->
+        <div class="bulk-actions" id="bulkActions">
+            <div>
+                <strong><span id="selectedCountBulk">0</span> items selected</strong>
+            </div>
+            <div>
+                <button class="btn btn-sm btn-warning me-2" onclick="bulkEdit()">
+                    <i class="fas fa-edit me-1"></i>Bulk Edit
+                </button>
+                <button class="btn btn-sm btn-danger me-2" onclick="bulkDelete()">
+                    <i class="fas fa-trash me-1"></i>Delete Selected
+                </button>
+                <button class="btn btn-sm btn-info me-2" onclick="bulkExport()">
+                    <i class="fas fa-download me-1"></i>Export Selected
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">
+                    <i class="fas fa-times me-1"></i>Clear Selection
+                </button>
+            </div>
+        </div>
+
+        <!-- AG Grid Container with Loading Overlay -->
+        <div class="grid-container position-relative">
+            <div id="plansGrid" class="ag-theme-alpine h-100"></div>
+            <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                <div class="text-center">
+                    <div class="spinner"></div>
+                    <div class="mt-2">Loading plans...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Grid Stats -->
+        <div class="grid-stats">
+            <div class="stats-left">
+                <div class="stat-item">
+                    <i class="fas fa-home text-primary"></i>
+                    <span><span class="stat-value" id="rowCount">0</span> plans</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-check-square text-info"></i>
+                    <span><span class="stat-value" id="selectedCount">0</span> selected</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-layer-group text-success"></i>
+                    <span><span class="stat-value" id="elevationCount">0</span> elevations</span>
+                </div>
+            </div>
+            <div class="text-muted">
+                <small>Last updated: <span id="lastUpdated">-</span></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Modal -->
+    <div class="modal fade" id="planModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="planModalTitle">Add New Plan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="planForm">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="plan_name" class="form-label">Plan Name</label>
+                                    <input type="text" class="form-control" id="plan_name" name="plan_name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="architect" class="form-label">Architect</label>
+                                    <input type="text" class="form-control" id="architect" name="architect">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="engineer" class="form-label">Engineer</label>
+                                    <input type="text" class="form-control" id="engineer" name="engineer">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="savePlanBtn">Save Plan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
+    <!-- AG Grid Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@31.0.0/dist/ag-grid-enterprise.min.js"></script>
+
+    <script>
+        // AG Grid License
+        agGrid.LicenseManager.setLicenseKey("Using_this_{AG_Grid}_Enterprise_key_{AG-090866}_in_excess_of_the_licence_granted_is_not_permitted___Please_report_misuse_to_legal@ag-grid.com___For_help_with_changing_this_key_please_contact_info@ag-grid.com___{Jon_Ruff}_is_granted_a_{Single_Application}_Developer_License_for_the_application_{7.2.25_postgress/docker}_only_for_{1}_Front-End_JavaScript_developer___All_Front-End_JavaScript_developers_working_on_{7.2.25_postgress/docker}_need_to_be_licensed___{7.2.25_postgress/docker}_has_not_been_granted_a_Deployment_License_Add-on___This_key_works_with_{AG_Grid}_Enterprise_versions_released_before_{3_July_2026}____[v3]_[01]_MTc4MzAzMzIwMDAwMA==19f186f51d3d529c90499fde9cba373b");
+
+        // Global variables
+        let gridApi;
+        let gridColumnApi;
+        let allRowData = [];
+        let totalElevations = 0;
+        let totalOptions = 0;
+
+        // Initialize the grid when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeGrid();
+        });
+
+        // Initialize the grid with column definitions and configuration
+        function initializeGrid() {
+            // Create the grid with the defined options
+            const gridDiv = document.querySelector('#plansGrid');
+            gridApi = agGrid.createGrid(gridDiv, gridOptions);
+            
+            // Initialize column controls
+            initializeColumnControls();
+            
+            // Load initial data
+            loadInitialData();
+        }
+
+        // Enhanced Custom Cell Renderers
+        const PlanCellRenderer = params => {
+            if (!params.value) return '';
+            const planName = params.value || 'Unknown Plan';
+            const architect = params.data.architect || '';
+            
+            return `
+                <div class="plan-cell">
+                    <div class="plan-info">
+                        <div class="plan-name" title="${planName}">${planName}</div>
+                        <div class="plan-architect">${architect ? 'Architect: ' + architect : ''}</div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const CountCellRenderer = params => {
+            if (params.value === null || params.value === undefined) return '0';
+            const count = parseInt(params.value) || 0;
+            
+            return `
+                <span class="count-badge">${count}</span>
+            `;
+        };
+
+        // Enhanced Column Definitions
+        const columnDefs = [
+            {
+                headerName: '',
+                checkboxSelection: true,
+                headerCheckboxSelection: true,
+                width: 50,
+                pinned: 'left',
+                lockPosition: true,
+                suppressMenu: true,
+                sortable: false
+            },
+            {
+                headerName: 'Plan Name',
+                field: 'plan_name',
+                width: 250,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                cellRenderer: PlanCellRenderer,
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                },
+                pinned: 'left',
+                sort: 'asc',
+                sortIndex: 0
+            },
+            {
+                headerName: 'Architect',
+                field: 'architect',
+                width: 200,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                }
+            },
+            {
+                headerName: 'Engineer',
+                field: 'engineer',
+                width: 200,
+                editable: true,
+                cellEditor: 'agTextCellEditor',
+                filter: 'agSetColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true,
+                    suppressSelectAll: false,
+                    newRowsAction: 'keep'
+                }
+            },
+            {
+                headerName: 'Elevations',
+                field: 'elevation_count',
+                width: 120,
+                cellRenderer: CountCellRenderer,
+                filter: 'agNumberColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true
+                },
+                type: 'numericColumn',
+                editable: false
+            },
+            {
+                headerName: 'Options',
+                field: 'option_count',
+                width: 120,
+                cellRenderer: CountCellRenderer,
+                filter: 'agNumberColumnFilter',
+                filterParams: {
+                    buttons: ['reset', 'apply'],
+                    closeOnApply: true
+                },
+                type: 'numericColumn',
+                editable: false
+            }
+        ];
+
+        // Enhanced Grid Options with Excel-like functionality
+        const gridOptions = {
+            columnDefs: columnDefs,
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true,
+                floatingFilter: true,
+                suppressMenu: false,
+                editable: true  // Make all columns editable by default
+            },
+            suppressColumnVirtualisation: false,
+            suppressHorizontalScroll: false,
+            rowSelection: 'multiple',
+            animateRows: true,
+            enableRangeSelection: true,
+            enableRangeHandle: true,
+            enableFillHandle: true,
+            fillHandleDirection: 'xy',  // Allow fill in both directions
+            enableCharts: true,
+            enableCellTextSelection: true,
+            ensureDomOrder: true,
+            clipboardDelimiter: '\t',  // Tab delimiter for Excel compatibility
+            suppressCopyRowsToClipboard: false,
+            suppressCopySingleCellRanges: false,
+            copyHeadersToClipboard: true,
+            copyGroupHeadersToClipboard: true,
+            onCellValueChanged: onCellValueChanged,
+            sideBar: {
+                toolPanels: [
+                    {
+                        id: 'columns',
+                        labelDefault: 'Columns',
+                        labelKey: 'columns',
+                        iconKey: 'columns',
+                        toolPanel: 'agColumnsToolPanel',
+                        toolPanelParams: {
+                            suppressRowGroups: true,
+                            suppressValues: true,
+                            suppressPivots: true,
+                            suppressPivotMode: true,
+                            suppressColumnFilter: false,
+                            suppressColumnSelectAll: false,
+                            suppressColumnExpandAll: false
+                        }
+                    },
+                    {
+                        id: 'filters',
+                        labelDefault: 'Filters',
+                        labelKey: 'filters',
+                        iconKey: 'filter',
+                        toolPanel: 'agFiltersToolPanel'
+                    }
+                ],
+                defaultToolPanel: 'columns'
+            },
+            statusBar: {
+                statusPanels: [
+                    { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'left' },
+                    { statusPanel: 'agSelectedRowCountComponent', align: 'left' },
+                    { statusPanel: 'agAggregationComponent', align: 'right' }
+                ]
+            },
+            onGridReady: onGridReady,
+            onSelectionChanged: onSelectionChanged,
+            onFilterChanged: onFilterChanged,
+            tooltipShowDelay: 500,
+            pagination: true,
+            paginationPageSize: 50,
+            paginationPageSizeSelector: [25, 50, 100, 200]
+        };
+
+        // Enhanced Grid Event Handlers
+        function onGridReady(params) {
+            gridApi = params.api;
+            gridColumnApi = params.columnApi;
+            
+            // Handle window resize
+            window.addEventListener('resize', debounce(() => {
+                // Maintain column widths on resize
+            }, 250));
+        }
+
+        function onSelectionChanged() {
+            const selectedRows = gridApi.getSelectedRows();
+            const selectedCount = selectedRows.length;
+            
+            // Update selection counters
+            const selectedCountEl = document.getElementById('selectedCount');
+            const selectedCountBulkEl = document.getElementById('selectedCountBulk');
+            
+            if (selectedCountEl) selectedCountEl.textContent = selectedCount;
+            if (selectedCountBulkEl) selectedCountBulkEl.textContent = selectedCount;
+            
+            // Show/hide bulk actions
+            const bulkActions = document.getElementById('bulkActions');
+            if (selectedCount > 0) {
+                bulkActions.classList.add('show');
+            } else {
+                bulkActions.classList.remove('show');
+            }
+        }
+
+        function onFilterChanged() {
+            updateGridInfo();
+        }
+
+        // Cell Value Changed Handler for Inline Editing
+        async function onCellValueChanged(params) {
+            const { data, colDef, newValue, oldValue } = params;
+            
+            // Skip if value hasn't actually changed
+            if (newValue === oldValue) return;
+            
+            try {
+                // Prepare the update payload
+                const updateData = {
+                    [colDef.field]: newValue
+                };
+                
+                // Make API call to update the plan
+                const response = await fetch(`/api/plans/${data.plan_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    // Check for specific error types
+                    if (response.status === 500 && result.message && result.message.includes('duplicate key value')) {
+                        throw new Error(`This ${colDef.field.replace('_', ' ')} already exists. Please use a unique value.`);
+                    } else {
+                        throw new Error(`Failed to update plan: ${response.statusText}`);
+                    }
+                }
+                
+                if (result.success) {
+                    // Update the row data with the response
+                    data[colDef.field] = newValue;
+                    
+                    // Refresh the specific row to reflect any server-side changes
+                    params.api.applyTransaction({ update: [data] });
+                    
+                    // Show success notification
+                    showNotification(`${colDef.headerName} updated successfully`, 'success');
+                } else {
+                    throw new Error(result.message || 'Update failed');
+                }
+                
+            } catch (error) {
+                console.error('Error updating plan:', error);
+                
+                // Revert the change on error
+                data[colDef.field] = oldValue;
+                params.api.applyTransaction({ update: [data] });
+                
+                // Show error notification
+                showNotification(`Failed to update ${colDef.headerName}: ${error.message}`, 'danger');
+            }
+        }
+
+        // Data Loading Functions
+        async function loadInitialData() {
+            showLoading(true);
+            try {
+                const response = await fetch('/api/plans');
+                if (!response.ok) throw new Error('Failed to load plans');
+                
+                const data = await response.json();
+                allRowData = data;
+                
+                // Calculate totals
+                totalElevations = data.reduce((sum, plan) => sum + (parseInt(plan.elevation_count) || 0), 0);
+                totalOptions = data.reduce((sum, plan) => sum + (parseInt(plan.option_count) || 0), 0);
+                
+                // Update the grid with the data
+                gridApi.setGridOption('rowData', data);
+                
+                // Update grid info and stats
+                updateGridInfo();
+                
+                // Update last updated time
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+                
+                showNotification('Plans loaded successfully', 'success');
+            } catch (error) {
+                console.error('Error loading plans:', error);
+                showNotification('Failed to load plans: ' + error.message, 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Utility Functions
+        function showLoading(show) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = show ? 'flex' : 'none';
+            }
+        }
+
+        function updateGridInfo() {
+            // Update row count
+            const rowCount = document.getElementById('rowCount');
+            if (rowCount) {
+                rowCount.textContent = gridApi.getDisplayedRowCount();
+            }
+
+            // Update elevation count
+            const elevationCount = document.getElementById('elevationCount');
+            if (elevationCount) {
+                elevationCount.textContent = totalElevations;
+            }
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Function to show notifications
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            
+            notification.className = `alert alert-${type} notification`;
+            notification.innerHTML = message;
+            
+            container.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => {
+                    notification.remove();
+                }, 500);
+            }, 5000);
+        }
+
+        // Helper Functions for UI
+        function addNewPlan() {
+            // Simple alert to test if the function is being called
+            alert('addNewPlan function called!');
+            
+            // Reset form
+            document.getElementById('planForm').reset();
+            document.getElementById('planModalTitle').textContent = 'Add New Plan';
+            
+            // Show modal
+            const planModal = new bootstrap.Modal(document.getElementById('planModal'));
+            planModal.show();
+            
+            // Set up save button
+            const saveButton = document.getElementById('savePlanBtn');
+            saveButton.onclick = savePlan;
+        }
+
+        async function savePlan() {
+            const form = document.getElementById('planForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            const planData = {
+                plan_name: document.getElementById('plan_name').value,
+                architect: document.getElementById('architect').value,
+                engineer: document.getElementById('engineer').value
+            };
+            
+            try {
+                const response = await fetch('/api/plans', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(planData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to create plan: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('planModal')).hide();
+                    
+                    // Refresh grid
+                    loadInitialData();
+                    
+                    // Show success notification
+                    showNotification('Plan created successfully', 'success');
+                } else {
+                    throw new Error(result.message || 'Creation failed');
+                }
+                
+            } catch (error) {
+                console.error('Error creating plan:', error);
+                showNotification(`Failed to create plan: ${error.message}`, 'danger');
+            }
+        }
+
+        function refreshGrid() {
+            loadInitialData();
+        }
+
+        function onSearchChange(value) {
+            gridApi.setQuickFilter(value);
+            updateGridInfo();
+        }
+
+        function toggleColumnControls() {
+            const controls = document.getElementById('columnControls');
+            controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function showAllColumns() {
+            const allColumns = gridApi.getColumns();
+            allColumns.forEach(column => {
+                gridApi.setColumnVisible(column.getColId(), true);
+            });
+        }
+
+        function hideAllColumns() {
+            const allColumns = gridApi.getColumns();
+            allColumns.forEach(column => {
+                if (column.getColId() !== 'ag-Grid-AutoColumn') {
+                    gridApi.setColumnVisible(column.getColId(), false);
+                }
+            });
+        }
+
+        function clearSelection() {
+            gridApi.deselectAll();
+        }
+
+        function initializeColumnControls() {
+            const columnToggle = document.getElementById('columnToggle');
+            columnToggle.innerHTML = '';
+            
+            // Wait for grid to be ready
+            setTimeout(() => {
+                if (gridApi) {
+                    const columns = gridApi.getColumns();
+                    columns.forEach(column => {
+                        if (column.getColId() === 'ag-Grid-AutoColumn') return;
+                        
+                        const colId = column.getColId();
+                        const headerName = column.getColDef().headerName || colId;
+                        
+                        const checkboxDiv = document.createElement('div');
+                        checkboxDiv.className = 'form-check';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'form-check-input column-toggle';
+                        checkbox.id = `col-${colId}`;
+                        checkbox.checked = column.isVisible();
+                        checkbox.dataset.column = colId;
+                        checkbox.addEventListener('change', function() {
+                            gridColumnApi.setColumnVisible(colId, this.checked);
+                        });
+                        
+                        const label = document.createElement('label');
+                        label.className = 'form-check-label';
+                        label.htmlFor = `col-${colId}`;
+                        label.textContent = headerName;
+                        
+                        checkboxDiv.appendChild(checkbox);
+                        checkboxDiv.appendChild(label);
+                        columnToggle.appendChild(checkboxDiv);
+                    });
+                }
+            }, 100);
+        }
+
+        // Export Functions
+        function exportToExcel() {
+            gridApi.exportDataAsExcel({
+                fileName: 'Plans_Export_' + new Date().toISOString().split('T')[0],
+                sheetName: 'Plans'
+            });
+        }
+
+        function exportToCSV() {
+            gridApi.exportDataAsCsv({
+                fileName: 'Plans_Export_' + new Date().toISOString().split('T')[0]
+            });
+        }
+
+        function exportToPDF() {
+            // AG Grid doesn't have built-in PDF export, so we'll use a workaround
+            showNotification('PDF export is not available in this version', 'warning');
+        }
+
+        // Bulk Actions
+        function bulkEdit() {
+            const selectedRows = gridApi.getSelectedRows();
+            if (selectedRows.length === 0) {
+                showNotification('No plans selected', 'warning');
+                return;
+            }
+            
+            showNotification('Bulk edit functionality is not implemented yet', 'info');
+        }
+
+        function bulkDelete() {
+            const selectedRows = gridApi.getSelectedRows();
+            if (selectedRows.length === 0) {
+                showNotification('No plans selected', 'warning');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete ${selectedRows.length} selected plans?`)) {
+                return;
+            }
+            
+            // Process deletions sequentially
+            Promise.all(selectedRows.map(row =>
+                fetch(`/api/plans/${row.plan_id}`, { method: 'DELETE' })
+                    .then(response => response.json())
+            ))
+            .then(results => {
+                const successCount = results.filter(r => r.success).length;
+                loadInitialData();
+                showNotification(`Successfully deleted ${successCount} plans`, 'success');
+            })
+            .catch(error => {
+                console.error('Error deleting plans:', error);
+                showNotification('Error deleting plans', 'danger');
+            });
+        }
+
+        function bulkExport() {
+            const selectedRows = gridApi.getSelectedRows();
+            if (selectedRows.length === 0) {
+                showNotification('No plans selected', 'warning');
+                return;
+            }
+            
+            // Create a temporary grid with only selected rows
+            const tempData = selectedRows;
+            
+            // Export to Excel
+            gridApi.exportDataAsExcel({
+                fileName: 'Selected_Plans_' + new Date().toISOString().split('T')[0],
+                sheetName: 'Selected Plans',
+                onlySelected: true
+            });
+        }
+
+        function showKeyboardShortcuts() {
+            // Show keyboard shortcuts modal
+            showNotification('Keyboard shortcuts are not implemented yet', 'info');
+        }
+    </script>
+    
+    <!-- Global functions for UI interactions -->
+    <script>
+        // Make addNewPlan available in global scope
+        function addNewPlan() {
+            alert('addNewPlan function called!');
+            
+            // Reset form
+            document.getElementById('planForm').reset();
+            document.getElementById('planModalTitle').textContent = 'Add New Plan';
+            
+            // Show modal
+            const planModal = new bootstrap.Modal(document.getElementById('planModal'));
+            planModal.show();
+            
+            // Set up save button
+            const saveButton = document.getElementById('savePlanBtn');
+            saveButton.onclick = savePlan;
+        }
+    </script>
+</body>
+</html>

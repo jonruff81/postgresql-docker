@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qty Takeoffs Grid</title>
+    
+    <!-- AG Grid CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/styles/ag-theme-alpine.css">
+
+    <style>
+        /* Custom styles for the grid */
+        .ag-theme-alpine {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<h1>Qty Takeoffs</h1>
+
+<input type="file" id="import-file" accept=".xlsx, .xls">
+    <button id="import-button">Import</button>
+    <button id="export-csv-button">Export to CSV</button>
+    <button id="export-excel-button">Export to Excel</button>
+    <button id="template-csv-button">Download CSV Template</button>
+    <button id="template-excel-button">Download Excel Template</button>
+    <button id="delete-button">Delete Selected</button>
+    
+    <div id="qty-takeoffs-grid" class="ag-theme-alpine"></div>
+
+    <!-- AG Grid Enterprise JS -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-enterprise/dist/ag-grid-enterprise.min.noStyle.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set AG Grid license key before grid creation
+            agGrid.LicenseManager.setLicenseKey("{{ ag_grid_license_key }}");
+
+            // Store grid API reference
+            let gridApi;
+
+            // Grid ready callback
+            function onGridReady(event) {
+                console.log('Grid is ready');
+                gridApi = event.api;
+                
+                // Fetch initial data from the server
+                fetch('/api/qty-takeoffs')
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Data received:', data);
+                        gridApi.setGridOption('rowData', data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+            }
+
+            // Grid options
+            const gridOptions = {
+                columnDefs: [
+                    { field: 'takeoff_id', headerName: 'ID' },
+                    { field: 'plan_full_name', headerName: 'Plan' },
+                    { field: 'option_name', headerName: 'Option' },
+                    { field: 'cost_code', headerName: 'Cost Code', editable: true },
+                    { field: 'item_name', headerName: 'Item', editable: true },
+                    { field: 'item_description', headerName: 'Description', editable: true },
+                    { field: 'quantity_source', headerName: 'Qty Source', editable: true },
+                    { field: 'quantity', headerName: 'Quantity', editable: true, type: 'numericColumn' },
+                    { field: 'unit_price', headerName: 'Unit Price', editable: true, type: 'numericColumn' },
+                    { field: 'price_factor', headerName: 'Factor', editable: true, type: 'numericColumn' },
+                    { field: 'unit_of_measure', headerName: 'UOM', editable: true },
+                    { field: 'extended_price', headerName: 'Ext Price', type: 'numericColumn' },
+                    { field: 'vendor_name', headerName: 'Vendor', editable: true },
+                    { field: 'notes', headerName: 'Notes', editable: true }
+                ],
+                defaultColDef: {
+                    flex: 1,
+                    minWidth: 100,
+                    resizable: true,
+                    sortable: true,
+                    editable: true
+                },
+                editType: 'fullRow',
+                onCellValueChanged: onCellValueChanged,
+                rowSelection: 'multiple',
+                onGridReady: onGridReady
+            };
+
+            // Get the grid div
+            const eGridDiv = document.getElementById('qty-takeoffs-grid');
+            
+            // Create the grid and get the grid instance
+            const gridInstance = agGrid.createGrid(eGridDiv, gridOptions);
+
+            // Cell value changed callback
+            function onCellValueChanged(event) {
+                const data = event.data;
+                console.log('Cell value changed:', data);
+                
+                // Send update to server
+                fetch('/api/qty-takeoffs/bulk-update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ updates: [data] }),
+                })
+                .then(response => response.json())
+                .then(result => {
+                    console.log('Update result:', result);
+                    // Refresh data after update
+                    if (gridApi) {
+                        gridApi.refreshCells();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating qty takeoff:', error);
+                });
+            }
+
+            // Delete button click handler
+            document.getElementById('delete-button').addEventListener('click', function() {
+                if (!gridApi) {
+                    alert('Grid not ready');
+                    return;
+                }
+
+                const selectedRows = gridApi.getSelectedRows();
+                const takeoffIds = selectedRows.map(row => row.takeoff_id);
+
+                if (takeoffIds.length === 0) {
+                    alert('Please select rows to delete');
+                    return;
+                }
+
+                if (confirm(`Are you sure you want to delete ${takeoffIds.length} qty takeoffs?`)) {
+                    fetch('/api/qty-takeoffs/delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ takeoff_ids: takeoffIds }),
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        console.log('Delete result:', result);
+                        // Refresh grid data after delete
+                        gridApi.applyTransaction({ remove: selectedRows });
+                    })
+                    .catch(error => {
+                        console.error('Error deleting qty takeoffs:', error);
+                    });
+                }
+            });
+
+            // Import button click handler
+document.getElementById('import-button').addEventListener('click', function() {
+                const file = document.getElementById('import-file').files[0];
+                if (!file) {
+                    alert('Please select a file to import');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+                    fetch('/api/qty-takeoffs/import', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ data: jsonData }),
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        console.log('Import result:', result);
+                        // Refresh grid data after import
+                        // Optionally, you can reload the page or re-fetch data
+                        location.reload();
+                    })
+                    .catch(error => {
+                        console.error('Error importing qty takeoffs:', error);
+                    });
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
+            // Export to CSV button click handler
+            document.getElementById('export-csv-button').addEventListener('click', function() {
+                if (!gridApi) {
+                    alert('Grid not ready');
+                    return;
+                }
+                const params = {
+                    fileName: 'qty_takeoffs.csv',
+                };
+                gridApi.exportDataAsCsv(params);
+            });
+
+            // Export to Excel button click handler  
+            document.getElementById('export-excel-button').addEventListener('click', function() {
+                if (!gridApi) {
+                    alert('Grid not ready');
+                    return;
+                }
+                const params = {
+                    fileName: 'qty_takeoffs.xlsx',
+                    sheetName: 'Qty Takeoffs',
+                };
+                gridApi.exportDataAsExcel(params);
+            });
+
+            // Download CSV Template button click handler
+            document.getElementById('template-csv-button').addEventListener('click', function() {
+                window.location.href = '/api/qty-takeoffs/template/csv';
+            });
+
+            // Download Excel Template button click handler
+            document.getElementById('template-excel-button').addEventListener('click', function() {
+                window.location.href = '/api/qty-takeoffs/template/excel';
+            });
+        });
+    </script>
+</body>
+</html>

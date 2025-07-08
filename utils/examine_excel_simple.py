@@ -60,10 +60,11 @@ def examine_excel_file(filepath):
 
 def main():
     """Examine all Excel files"""
-    directory = 'PlanElevOptions'
+    # [NOTE] PlanElevOptions is now archived. Update path to archived location.
+    directory = os.path.join('..', 'archived', 'cleanup_2025', 'PlanElevOptions')
     
     if not os.path.exists(directory):
-        print(f"Directory {directory} does not exist")
+        print(f"Directory {directory} does not exist (archived location)")
         return
     
     files = [f for f in os.listdir(directory) if f.endswith('.xlsx')]
@@ -77,4 +78,4 @@ def main():
         print("No Excel files found")
 
 if __name__ == "__main__":
-    main() 
+    main()
